@@ -25,8 +25,13 @@ export type ResourceContent = {
   type: "resource";
 };
 
-// Forward declaration for ResourceLink - will be resolved when resource types are extracted
-export type ResourceLink = any;
+// ResourceLink for referencing resources without embedding content
+export type ResourceLink = {
+  resource: {
+    uri: string;
+  };
+  type: "resource_link";
+};
 
 export type Content =
   | AudioContent
