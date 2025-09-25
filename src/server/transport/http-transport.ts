@@ -5,7 +5,7 @@ import { Logger } from "../../types/logger.js";
 import { SSEServer } from "../../types/server.js";
 import { FastMCPSessionAuth } from "../../types/auth.js";
 
-export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType> {
+export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType extends { close(): Promise<void>; connect(): Promise<void> }> {
   authenticate?: (request: http.IncomingMessage) => Promise<T>;
   createSession: (auth: T | undefined) => SessionType;
   enableJsonResponse?: boolean;
@@ -23,7 +23,7 @@ export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType> 
 /**
  * Creates and configures an HTTP transport for FastMCP
  */
-export async function createHttpTransport<T extends FastMCPSessionAuth, SessionType>(
+export async function createHttpTransport<T extends FastMCPSessionAuth, SessionType extends { close(): Promise<void>; connect(): Promise<void> }>(
   config: HttpTransportConfig<T, SessionType>
 ): Promise<SSEServer> {
   const {

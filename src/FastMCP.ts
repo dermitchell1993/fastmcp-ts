@@ -2,15 +2,27 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { EventStore } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
+import {
+  GetPromptResult,
+  ResourceLink,
+} from "@modelcontextprotocol/sdk/types.js";
+
+import { EventEmitter } from "events";
 import { readFile } from "fs/promises";
-import { z } from "zod";
+import * as http from "http";
+import { startHTTPServer } from "mcp-proxy";
+import { StrictEventEmitter } from "strict-event-emitter-types";
+
 import { StandardSchemaV1 } from "@standard-schema/spec";
 
 import { FastMCPSession } from "./session/FastMCPSession.js";
 import { 
   Authenticate,
+  FastMCPEvents,
   FastMCPSessionAuth,
-  Root
+  LoggingLevel,
+  Root,
+  SSEServer
 } from "./types/index.js";
 
 // Parameter mapping functions to adapt between FastMCP and FastMCPSession interfaces
@@ -68,14 +80,7 @@ export interface Logger {
   warn(...args: unknown[]): void;
 }
 
-export type SSEServer = {
-  close: () => Promise<void>;
-};
 
-type FastMCPEvents<T extends FastMCPSessionAuth> = {
-  connect: (event: { session: FastMCPSession<T> }) => void;
-  disconnect: (event: { session: FastMCPSession<T> }) => void;
-};
 
 type FastMCPSessionEvents = {
   error: (event: { error: Error }) => void;
@@ -287,15 +292,7 @@ export class UnexpectedStateError extends FastMCPError {
  */
 export class UserError extends UnexpectedStateError {}
 
-const TextContentZodSchema = z
-  .object({
-    /**
-     * The text content of the message.
-     */
-    text: z.string(),
-    type: z.literal("text"),
-  })
-  .strict() satisfies z.ZodType<TextContent>;
+
 
 type ImageContent = {
   data: string;
@@ -303,19 +300,7 @@ type ImageContent = {
   type: "image";
 };
 
-const ImageContentZodSchema = z
-  .object({
-    /**
-     * The base64-encoded image data.
-     */
-    data: z.string().base64(),
-    /**
-     * The MIME type of the image. Different providers may support different image types.
-     */
-    mimeType: z.string(),
-    type: z.literal("image"),
-  })
-  .strict() satisfies z.ZodType<ImageContent>;
+
 
 type AudioContent = {
   data: string;
@@ -323,16 +308,7 @@ type AudioContent = {
   type: "audio";
 };
 
-const AudioContentZodSchema = z
-  .object({
-    /**
-     * The base64-encoded audio data.
-     */
-    data: z.string().base64(),
-    mimeType: z.string(),
-    type: z.literal("audio"),
-  })
-  .strict() satisfies z.ZodType<AudioContent>;
+
 
 type ResourceContent = {
   resource: {
@@ -344,26 +320,9 @@ type ResourceContent = {
   type: "resource";
 };
 
-const ResourceContentZodSchema = z
-  .object({
-    resource: z.object({
-      blob: z.string().optional(),
-      mimeType: z.string().optional(),
-      text: z.string().optional(),
-      uri: z.string(),
-    }),
-    type: z.literal("resource"),
-  })
-  .strict() satisfies z.ZodType<ResourceContent>;
 
-const ResourceLinkZodSchema = z.object({
-  description: z.string().optional(),
-  mimeType: z.string().optional(),
-  name: z.string(),
-  title: z.string().optional(),
-  type: z.literal("resource_link"),
-  uri: z.string(),
-}) satisfies z.ZodType<ResourceLink>;
+
+
 
 type Content =
   | AudioContent
@@ -372,25 +331,14 @@ type Content =
   | ResourceLink
   | TextContent;
 
-const ContentZodSchema = z.discriminatedUnion("type", [
-  TextContentZodSchema,
-  ImageContentZodSchema,
-  AudioContentZodSchema,
-  ResourceContentZodSchema,
-  ResourceLinkZodSchema,
-]) satisfies z.ZodType<Content>;
+
 
 type ContentResult = {
   content: Content[];
   isError?: boolean;
 };
 
-const ContentResultZodSchema = z
-  .object({
-    content: ContentZodSchema.array(),
-    isError: z.boolean().optional(),
-  })
-  .strict() satisfies z.ZodType<ContentResult>;
+
 
 type Completion = {
   hasMore?: boolean;
@@ -398,23 +346,7 @@ type Completion = {
   values: string[];
 };
 
-/**
- * https://github.com/modelcontextprotocol/typescript-sdk/blob/3164da64d085ec4e022ae881329eee7b72f208d4/src/types.ts#L983-L1003
- */
-const CompletionZodSchema = z.object({
-  /**
-   * Indicates whether there are additional completion options beyond those provided in the current response, even if the exact total is unknown.
-   */
-  hasMore: z.optional(z.boolean()),
-  /**
-   * The total number of completion options available. This can exceed the number of values actually sent in the response.
-   */
-  total: z.optional(z.number().int()),
-  /**
-   * An array of completion values. Must not exceed 100 items.
-   */
-  values: z.array(z.string()).max(100),
-}) satisfies z.ZodType<Completion>;
+
 
 type ArgumentValueCompleter<T extends FastMCPSessionAuth = FastMCPSessionAuth> =
   (value: string, auth?: T) => Promise<Completion>;
@@ -464,15 +396,7 @@ type InputResourceTemplateArgument<
   required?: boolean;
 }>;
 
-type LoggingLevel =
-  | "alert"
-  | "critical"
-  | "debug"
-  | "emergency"
-  | "error"
-  | "info"
-  | "notice"
-  | "warning";
+
 
 type Prompt<
   T extends FastMCPSessionAuth = FastMCPSessionAuth,
@@ -558,12 +482,7 @@ type ResourceTemplateArgumentsToObject<T extends { name: string }[]> = {
   [K in T[number]["name"]]: string;
 };
 
-type SamplingResponse = {
-  content: AudioContent | ImageContent | TextContent;
-  model: string;
-  role: "assistant" | "user";
-  stopReason?: "endTurn" | "maxTokens" | "stopSequence" | string;
-};
+
 
 type ServerOptions<T extends FastMCPSessionAuth> = {
   authenticate?: Authenticate<T>;

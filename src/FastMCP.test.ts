@@ -22,11 +22,12 @@ import {
   audioContent,
   type ContentResult,
   FastMCP,
-  FastMCPSession,
+  
   imageContent,
   type TextContent,
   UserError,
 } from "./FastMCP.js";
+import { FastMCPSession } from "./session/FastMCPSession.js";
 
 const runWithTestServer = async ({
   client: createClient,
