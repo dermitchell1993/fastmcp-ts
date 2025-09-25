@@ -401,13 +401,30 @@ export class FastMCPSession<
     this.#resources.push(resource);
   }
 
-  private addResourceTemplate(resourceTemplate: InputResourceTemplate<T>) {
-    const template: ResourceTemplate<T> = {
-      ...resourceTemplate,
-      uriTemplate: resourceTemplate.uriTemplate,
+  private addResourceTemplate(inputResourceTemplate: InputResourceTemplate<T>) {
+    const completers: Record<string, (value: string, auth?: T) => Promise<any>> = {};
+
+    for (const argument of inputResourceTemplate.arguments ?? []) {
+      if (argument.complete) {
+        completers[argument.name] = argument.complete;
+      }
+    }
+
+    const resourceTemplate: ResourceTemplate<T> = {
+      ...inputResourceTemplate,
+      uriTemplate: inputResourceTemplate.uriTemplate,
+      complete: async (name: string, value: string, auth?: T) => {
+        if (completers[name]) {
+          return await completers[name](value, auth);
+        }
+
+        return {
+          values: [],
+        };
+      },
     };
 
-    this.#resourceTemplates.push(template);
+    this.#resourceTemplates.push(resourceTemplate);
   }
 
   #getPingConfig(_transport: Transport): {
