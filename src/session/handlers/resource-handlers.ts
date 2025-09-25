@@ -8,17 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import parseURITemplate from "uri-templates";
 import { Resource, ResourceTemplate, FastMCPSessionAuth } from "../../types/index.js";
-
-// Error class for resource handlers
-export class UnexpectedStateError extends Error {
-  public extras?: any;
-
-  public constructor(message: string, extras?: any) {
-    super(message);
-    this.name = new.target.name;
-    this.extras = extras;
-  }
-}
+import { UnexpectedStateError } from "../../errors/index.js";
 
 export function setupResourceHandlers<T extends FastMCPSessionAuth>(
   server: Server,

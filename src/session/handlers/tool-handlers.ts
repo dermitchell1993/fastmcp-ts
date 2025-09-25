@@ -22,19 +22,7 @@ import {
   ResourceLink,
 } from "../../types/index.js";
 import { Logger } from "../../types/logger.js";
-
-// Error classes for tool handlers
-export class UnexpectedStateError extends Error {
-  public extras?: any;
-
-  public constructor(message: string, extras?: any) {
-    super(message);
-    this.name = new.target.name;
-    this.extras = extras;
-  }
-}
-
-export class UserError extends UnexpectedStateError {}
+import { UserError, UnexpectedStateError } from "../../errors/index.js";
 
 // Content validation schemas
 const TextContentZodSchema = z

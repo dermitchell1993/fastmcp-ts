@@ -2,17 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CompleteRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { Prompt, Tool, ResourceTemplate, FastMCPSessionAuth } from "../../types/index.js";
-
-// Error class for completion handlers
-export class UnexpectedStateError extends Error {
-  public extras?: any;
-
-  public constructor(message: string, extras?: any) {
-    super(message);
-    this.name = new.target.name;
-    this.extras = extras;
-  }
-}
+import { UnexpectedStateError } from "../../errors/index.js";
 
 // Completion schema validation
 const CompletionZodSchema = z.object({
