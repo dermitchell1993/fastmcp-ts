@@ -3,6 +3,8 @@ import {
   ErrorCode,
   ListResourcesRequestSchema,
   ListResourcesResult,
+  ListResourceTemplatesRequestSchema,
+  ListResourceTemplatesResult,
   McpError,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -112,6 +114,25 @@ export function setupResourceHandlers<T extends FastMCPSessionAuth>(
       throw new UnexpectedStateError("Unknown resource request", {
         request,
       });
+    },
+  );
+}
+
+export function setupResourceTemplateHandlers<T extends FastMCPSessionAuth>(
+  server: Server,
+  resourceTemplates: ResourceTemplate<T>[]
+) {
+  server.setRequestHandler(
+    ListResourceTemplatesRequestSchema,
+    async () => {
+      return {
+        resourceTemplates: resourceTemplates.map((resourceTemplate) => ({
+          description: resourceTemplate.description,
+          mimeType: resourceTemplate.mimeType,
+          name: resourceTemplate.name,
+          uriTemplate: resourceTemplate.uriTemplate,
+        })),
+      } satisfies ListResourceTemplatesResult;
     },
   );
 }

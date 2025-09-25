@@ -36,7 +36,7 @@ import { setupLoggingHandlers } from "./setup/logging-setup.js";
 import { setupRootsHandlers } from "./setup/roots-setup.js";
 import { setupCompleteHandlers } from "./handlers/completion-handlers.js";
 import { setupPromptHandlers } from "./handlers/prompt-handlers.js";
-import { setupResourceHandlers } from "./handlers/resource-handlers.js";
+import { setupResourceHandlers, setupResourceTemplateHandlers } from "./handlers/resource-handlers.js";
 import { setupToolHandlers } from "./handlers/tool-handlers.js";
 
 // Event emitter setup
@@ -212,7 +212,7 @@ export class FastMCPSession<
           this.addResourceTemplate(resourceTemplate);
         }
 
-        // setupResourceTemplateHandlers(this.#server, resourcesTemplates);
+        setupResourceTemplateHandlers(this.#server, this.#resourceTemplates);
       }
     }
 
