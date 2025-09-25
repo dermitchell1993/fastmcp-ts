@@ -1,3 +1,5 @@
-export type Authenticate<T> = (request: any) => Promise<T>; // http.IncomingMessage - will be resolved when full imports available
+import type { IncomingMessage } from "http";
+
+export type Authenticate<T> = (request: IncomingMessage) => Promise<T>;
 
 export type FastMCPSessionAuth = Record<string, unknown> | undefined;

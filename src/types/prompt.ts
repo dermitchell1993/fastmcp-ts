@@ -1,7 +1,5 @@
-export type ArgumentValueCompleter<T extends FastMCPSessionAuth> = (
-  value: string,
-  auth?: T,
-) => Promise<any>; // Completion type
+import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
+import type { FastMCPSessionAuth } from "./session.js";
 
 export type Completion = {
   hasMore?: boolean;
@@ -9,8 +7,10 @@ export type Completion = {
   values: string[];
 };
 
-// Forward declarations
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+export type ArgumentValueCompleter<T extends FastMCPSessionAuth> = (
+  value: string,
+  auth?: T,
+) => Promise<Completion>;
 
 export type InputPrompt<
   T extends FastMCPSessionAuth = FastMCPSessionAuth,
@@ -19,7 +19,7 @@ export type InputPrompt<
 > = {
   arguments?: InputPromptArgument<T>[];
   description?: string;
-  load: (args: Args, auth?: T) => Promise<any>; // PromptResult
+  load: (args: Args, auth?: T) => Promise<PromptResult>;
   name: string;
 };
 
@@ -39,9 +39,9 @@ export type Prompt<
   Args = PromptArgumentsToObject<Arguments>,
 > = {
   arguments?: PromptArgument<T>[];
-  complete?: (name: string, value: string, auth?: T) => Promise<any>; // Completion type
+  complete?: (name: string, value: string, auth?: T) => Promise<Completion>;
   description?: string;
-  load: (args: Args, auth?: T) => Promise<any>; // PromptResult
+  load: (args: Args, auth?: T) => Promise<PromptResult>;
   name: string;
 };
 
@@ -65,4 +65,4 @@ export type PromptArgumentsToObject<
     : string | undefined;
 };
 
-export type PromptResult = any; // Pick<GetPromptResult, "messages"> | string - will be resolved with MCP types
+export type PromptResult = Pick<GetPromptResult, "messages"> | string;
