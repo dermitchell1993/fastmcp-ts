@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-
 import { createTestServer, createTestTool } from "../fixtures.test.js";
 
 describe("Input Validation", () => {
@@ -8,17 +7,15 @@ describe("Input Validation", () => {
     it("should reject invalid parameters", async () => {
       const server = createTestServer();
 
-      server.addTool(
-        createTestTool({
-          execute: async (args: any) => {
-            return `Valid: ${args.number}, ${args.email}`;
-          },
-          parameters: z.object({
-            email: z.string().email(),
-            number: z.number().min(0).max(100),
-          }),
+      server.addTool(createTestTool({
+        parameters: z.object({
+          number: z.number().min(0).max(100),
+          email: z.string().email(),
         }),
-      );
+        execute: async (args: any) => {
+          return `Valid: ${args.number}, ${args.email}`;
+        },
+      }));
 
       // Note: This would need integration with a client to fully test
       // For now, we're just testing that the server accepts valid tool definitions
@@ -28,17 +25,15 @@ describe("Input Validation", () => {
     it("should accept valid parameters", async () => {
       const server = createTestServer();
 
-      server.addTool(
-        createTestTool({
-          execute: async (args: any) => {
-            return `Hello ${args.name}, age ${args.age}`;
-          },
-          parameters: z.object({
-            age: z.number().int().positive(),
-            name: z.string().min(1).max(50),
-          }),
+      server.addTool(createTestTool({
+        parameters: z.object({
+          name: z.string().min(1).max(50),
+          age: z.number().int().positive(),
         }),
-      );
+        execute: async (args: any) => {
+          return `Hello ${args.name}, age ${args.age}`;
+        },
+      }));
 
       expect(server).toBeDefined();
     });
@@ -49,15 +44,15 @@ describe("Input Validation", () => {
       const server = createTestServer();
 
       server.addResource({
-        load: async () => ({ text: "content" }),
         name: "Valid File Resource",
         uri: "file:///valid/path",
+        load: async () => ({ text: "content" }),
       });
 
       server.addResource({
-        load: async () => ({ text: "content" }),
         name: "Valid HTTP Resource",
         uri: "https://example.com/resource",
+        load: async () => ({ text: "content" }),
       });
 
       expect(server).toBeDefined();
@@ -68,9 +63,9 @@ describe("Input Validation", () => {
 
       // These should not throw during server creation
       server.addResource({
-        load: async () => ({ text: "content" }),
         name: "Invalid URI Resource",
         uri: "invalid-uri",
+        load: async () => ({ text: "content" }),
       });
 
       expect(server).toBeDefined();
@@ -82,15 +77,15 @@ describe("Input Validation", () => {
       const server = createTestServer();
 
       server.addPrompt({
+        name: "test-prompt",
         arguments: [
           {
-            description: "A valid topic",
             name: "topic",
+            description: "A valid topic",
             required: true,
           },
         ],
         load: async (args: any) => `Prompt about: ${args.topic}`,
-        name: "test-prompt",
       });
 
       expect(server).toBeDefined();
@@ -103,18 +98,16 @@ describe("Input Validation", () => {
 
       // This test ensures that even if malicious input gets through,
       // the server doesn't crash on common attack patterns
-      server.addTool(
-        createTestTool({
-          execute: async (args: any) => {
-            const input = args.input;
-            // Simulate some processing that might be vulnerable
-            if (typeof input === "string" && input.includes("DROP TABLE")) {
-              throw new Error("Potential SQL injection detected");
-            }
-            return `Processed: ${input}`;
-          },
-        }),
-      );
+      server.addTool(createTestTool({
+        execute: async (args: any) => {
+          const input = args.input;
+          // Simulate some processing that might be vulnerable
+          if (typeof input === 'string' && input.includes('DROP TABLE')) {
+            throw new Error('Potential SQL injection detected');
+          }
+          return `Processed: ${input}`;
+        },
+      }));
 
       expect(server).toBeDefined();
     });
@@ -125,12 +118,12 @@ describe("Input Validation", () => {
       const server = createTestServer();
 
       server.addResource({
+        uri: "file://../../../etc/passwd",
         load: async () => {
           // This should be handled safely by the file system
           // In a real implementation, you'd want to validate paths
           return { text: "This should not be accessible" };
         },
-        uri: "file://../../../etc/passwd",
       });
 
       expect(server).toBeDefined();

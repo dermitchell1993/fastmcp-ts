@@ -4,7 +4,9 @@ import { FastMCP, type ServerOptions } from "../src/FastMCP.js";
 
 // Shared test fixtures and data generators for FastMCP test suite
 
-export const createTestServer = (options: Partial<ServerOptions<any>> = {}) => {
+export const createTestServer = (
+  options: Partial<ServerOptions<any>> = {},
+) => {
   return new FastMCP({
     name: "Test Server",
     version: "1.0.0",
@@ -16,7 +18,7 @@ export const createTestTool = (
   overrides?: Partial<Parameters<FastMCP["addTool"]>[0]>,
 ) => ({
   description: "A test tool",
-  execute: async (args: any) => `Processed: ${args?.input || "default"}`,
+  execute: async (args: any) => `Processed: ${args?.input || 'default'}`,
   name: "test-tool",
   parameters: z.object({
     input: z.string(),

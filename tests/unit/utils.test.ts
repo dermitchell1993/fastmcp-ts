@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-
-import { audioContent, imageContent } from "../../src/utils/content-helpers.js";
+import { imageContent, audioContent } from "../../src/utils/content-helpers.js";
 
 describe("Content Helpers", () => {
   describe("imageContent", () => {
@@ -9,9 +8,9 @@ describe("Content Helpers", () => {
       const result = await imageContent({ buffer });
 
       expect(result).toEqual({
+        type: "image",
         data: "ZmFrZS1pbWFnZS1kYXRh", // base64 encoded
         mimeType: "image/png", // default
-        type: "image",
       });
     });
 
@@ -31,9 +30,9 @@ describe("Content Helpers", () => {
       const result = await audioContent({ buffer });
 
       expect(result).toEqual({
+        type: "audio",
         data: "ZmFrZS1hdWRpby1kYXRh", // base64 encoded
         mimeType: "audio/mpeg", // default
-        type: "audio",
       });
     });
 

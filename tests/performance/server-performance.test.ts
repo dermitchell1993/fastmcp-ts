@@ -1,6 +1,5 @@
-import { getRandomPort } from "get-port-please";
 import { describe, expect, it } from "vitest";
-
+import { getRandomPort } from "get-port-please";
 import { createTestServer, createTestTool } from "../fixtures.test.js";
 
 describe("Server Performance", () => {
@@ -30,15 +29,13 @@ describe("Server Performance", () => {
       const server = createTestServer();
 
       // Add a simple tool
-      server.addTool(
-        createTestTool({
-          execute: async (args) => {
-            // Simulate some work
-            await new Promise((resolve) => setTimeout(resolve, 10));
-            return `Processed: ${args.input}`;
-          },
-        }),
-      );
+      server.addTool(createTestTool({
+        execute: async (args) => {
+          // Simulate some work
+          await new Promise(resolve => setTimeout(resolve, 10));
+          return `Processed: ${args.input}`;
+        },
+      }));
 
       await server.start({
         httpStream: { port },
@@ -82,7 +79,7 @@ describe("Server Performance", () => {
         getRandomPort(),
       ]);
 
-      const servers = ports.map((port) => createTestServer());
+      const servers = ports.map(port => createTestServer());
 
       const startTime = Date.now();
 
@@ -92,8 +89,8 @@ describe("Server Performance", () => {
           server.start({
             httpStream: { port: ports[index] },
             transportType: "httpStream",
-          }),
-        ),
+          })
+        )
       );
 
       const endTime = Date.now();
@@ -102,7 +99,7 @@ describe("Server Performance", () => {
       expect(duration).toBeLessThan(2000); // Should start 3 servers in less than 2 seconds
 
       // Stop all servers
-      await Promise.all(servers.map((server) => server.stop()));
+      await Promise.all(servers.map(server => server.stop()));
     });
   });
 });
