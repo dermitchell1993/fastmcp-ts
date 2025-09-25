@@ -1205,3 +1205,8 @@ export type {
   Tool,
   ToolParameters,
 };
+
+// Export utility functions and error classes
+export { imageContent, audioContent } from "./utils/content-helpers.js";
+export { FastMCPError, UnexpectedStateError, UserError } from "./errors/index.js";
+export { FastMCPSession } from "./session/index.js";
