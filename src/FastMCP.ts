@@ -35,7 +35,14 @@ import { z } from "zod";
 // Modular imports from extracted foundation
 import { FastMCPSession } from "./session/index.js";
 import { createStdioTransport, createHttpTransport } from "./server/transport/index.js";
-import { handleHealthEndpoint, handleReadinessEndpoint, handleOAuthEndpoints } from "./server/endpoints/index.js";
+import {
+  handleHealthEndpoint,
+  handleReadinessEndpoint,
+  handleOAuthEndpoints,
+  type HealthEndpointConfig,
+  type ReadinessEndpointConfig,
+  type OAuthEndpointConfig,
+} from "./server/endpoints/index.js";
 import { imageContent, audioContent, ImageContent, AudioContent, TextContent } from "./utils/content-helpers.js";
 import { FastMCPError, UnexpectedStateError, UserError, Extra, Extras } from "./errors/index.js";
 
@@ -678,28 +685,6 @@ type ToolAnnotations = {
 
 
 
-/**
- * Converts camelCase to snake_case for OAuth endpoint responses
- */
-function camelToSnakeCase(str: string): string {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-}
-
-/**
- * Converts an object with camelCase keys to snake_case keys
- */
-function convertObjectToSnakeCase(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    const snakeKey = camelToSnakeCase(key);
-    result[snakeKey] = value;
-  }
-
-  return result;
-}
 
 const FastMCPEventEmitterBase: {
   new (): StrictEventEmitter<EventEmitter, FastMCPEvents<FastMCPSessionAuth>>;
@@ -1000,109 +985,30 @@ export class FastMCP<
     isStateless = false,
     host: string,
   ) => {
-    const healthConfig = this.#options.health ?? {};
+    // Try health endpoint handler
+    const healthHandled = await handleHealthEndpoint(req, res, {
+      healthConfig: this.#options.health,
+      logger: this.#logger,
+      host,
+    });
+    if (healthHandled) return;
 
-    const enabled =
-      healthConfig.enabled === undefined ? true : healthConfig.enabled;
+    // Try readiness endpoint handler
+    const readinessHandled = await handleReadinessEndpoint(req, res, {
+      sessions: this.#sessions,
+      isStateless,
+      logger: this.#logger,
+      host,
+    });
+    if (readinessHandled) return;
 
-    if (enabled) {
-      const path = healthConfig.path ?? "/health";
-      const url = new URL(req.url || "", `http://${host}`);
-
-      try {
-        if (req.method === "GET" && url.pathname === path) {
-          res
-            .writeHead(healthConfig.status ?? 200, {
-              "Content-Type": "text/plain",
-            })
-            .end(healthConfig.message ?? "✓ Ok");
-
-          return;
-        }
-
-        // Enhanced readiness check endpoint
-        if (req.method === "GET" && url.pathname === "/ready") {
-          if (isStateless) {
-            // In stateless mode, we're always ready if the server is running
-            const response = {
-              mode: "stateless",
-              ready: 1,
-              status: "ready",
-              total: 1,
-            };
-
-            res
-              .writeHead(200, {
-                "Content-Type": "application/json",
-              })
-              .end(JSON.stringify(response));
-          } else {
-            const readySessions = this.#sessions.filter(
-              (s) => s.isReady,
-            ).length;
-            const totalSessions = this.#sessions.length;
-            const allReady =
-              readySessions === totalSessions && totalSessions > 0;
-
-            const response = {
-              ready: readySessions,
-              status: allReady
-                ? "ready"
-                : totalSessions === 0
-                  ? "no_sessions"
-                  : "initializing",
-              total: totalSessions,
-            };
-
-            res
-              .writeHead(allReady ? 200 : 503, {
-                "Content-Type": "application/json",
-              })
-              .end(JSON.stringify(response));
-          }
-
-          return;
-        }
-      } catch (error) {
-        this.#logger.error("[FastMCP error] health endpoint error", error);
-      }
-    }
-
-    // Handle OAuth well-known endpoints
-    const oauthConfig = this.#options.oauth;
-    if (oauthConfig?.enabled && req.method === "GET") {
-      const url = new URL(req.url || "", `http://${host}`);
-
-      if (
-        url.pathname === "/.well-known/oauth-authorization-server" &&
-        oauthConfig.authorizationServer
-      ) {
-        const metadata = convertObjectToSnakeCase(
-          oauthConfig.authorizationServer,
-        );
-        res
-          .writeHead(200, {
-            "Content-Type": "application/json",
-          })
-          .end(JSON.stringify(metadata));
-        return;
-      }
-
-      if (
-        url.pathname === "/.well-known/oauth-protected-resource" &&
-        oauthConfig.protectedResource
-      ) {
-        const metadata = convertObjectToSnakeCase(
-          oauthConfig.protectedResource,
-        );
-        res
-          .writeHead(200, {
-            "Content-Type": "application/json",
-          })
-          .end(JSON.stringify(metadata));
-        return;
-      }
-    }
+    // Try OAuth endpoints handler
+    const oauthHandled = await handleOAuthEndpoints(req, res, {
+      oauthConfig: this.#options.oauth,
+      logger: this.#logger,
+      host,
+    });
+    if (oauthHandled) return;
 
     // If the request was not handled above, return 404
     res.writeHead(404).end();
