@@ -89,12 +89,13 @@ function mapUtilsConfig(utils?: {
     context: any,
     progress?: any,
   ) => Promise<any>;
+  formatInvalidParamsErrorMessage?: (issues: any[]) => string;
 } | undefined {
   if (!utils) return undefined;
   
-  // For now, we don't map formatInvalidParamsErrorMessage to streamContent
-  // as they serve different purposes. Return undefined to use defaults.
-  return undefined;
+  return {
+    formatInvalidParamsErrorMessage: utils.formatInvalidParamsErrorMessage,
+  };
 }
 
 import type { ResourceLink, Root, ImageContent, AudioContent, FastMCPSessionAuth, Authenticate, Logger, SSEServer, FastMCPEvents, FastMCPSessionEvents, Context, Progress, SerializableValue, TextContent, ToolParameters } from "./types/index.js";

@@ -94,6 +94,7 @@ export class FastMCPSession<
       context: Context<T>,
       progress?: Progress,
     ) => Promise<ContentResult>;
+    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
   };
 
   constructor({
@@ -134,6 +135,7 @@ export class FastMCPSession<
         context: Context<T>,
         progress?: Progress,
       ) => Promise<ContentResult>;
+      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     };
     version: string;
   }) {
