@@ -8,6 +8,8 @@ export default defineConfig({
     environment: "node",
     // Enable globals for describe, it, expect
     globals: true,
+    // Exclude node_modules to prevent running dependency tests
+    exclude: ["**/node_modules/**"],
     // Pool options for better performance
     poolOptions: {
       forks: {
