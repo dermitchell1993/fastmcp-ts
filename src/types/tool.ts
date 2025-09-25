@@ -37,6 +37,7 @@ export type ToolAnnotations = {
 
 // Forward declarations for dependencies
 export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+// @ts-ignore - T parameter will be used when proper Context type is implemented
 export type Context<T extends FastMCPSessionAuth = FastMCPSessionAuth> = any;
 export type Content = any;
 

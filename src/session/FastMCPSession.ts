@@ -86,7 +86,7 @@ export class FastMCPSession<
     listChanged?: boolean;
   };
   #server: Server;
-  #tools: Tool<T>[] = [];
+
   #utils?: {
     streamContent?: (
       content: Content,
@@ -178,7 +178,7 @@ export class FastMCPSession<
       this.#roots, 
       this.#rootsConfig, 
       this.#logger, 
-      (event: string, data: any) => this.emit(event, data)
+      (event: string, data: any) => this.emit(event as any, data)
     );
     setupCompleteHandlers(
       this.#server, 
@@ -314,7 +314,7 @@ export class FastMCPSession<
     } catch (error) {
       this.#connectionState = "error";
 
-      this.emit("error", error);
+      this.emit("error", { error: error as Error });
 
       throw error;
     }
@@ -331,14 +331,28 @@ export class FastMCPSession<
         resolve();
       };
 
-      const onError = (error: Error) => {
+      const onError = (event: { error: Error }) => {
         this.off("ready", onReady);
-        reject(error);
+        reject(event.error);
       };
 
       this.once("ready", onReady);
       this.once("error", onError);
     });
+  }
+
+  public async requestSampling(
+    request: any, // SamplingRequest - will be resolved when MCP types are available
+    options?: any // RequestOptions - will be resolved when MCP types are available
+  ): Promise<any> { // SamplingResponse - will be resolved when MCP types are available
+    // Forward to the server's sampling request handler
+    return this.#server.request(
+      {
+        method: "sampling/createMessage",
+        params: request,
+      },
+      options
+    );
   }
 
   private addPrompt(prompt: Prompt<T>) {

@@ -73,7 +73,7 @@ const ResourceContentZodSchema = z
 
 const ResourceLinkZodSchema = z
   .object({
-    type: z.literal("resource"),
+    type: z.literal("resource_link"),
     resource: z.object({
       uri: z.string(),
     }),

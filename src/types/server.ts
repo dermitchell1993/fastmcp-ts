@@ -2,9 +2,14 @@ export type SSEServer = {
   close: () => Promise<void>;
 };
 
+// Forward declarations
+export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+
 // Forward declaration for FastMCPSession - will be resolved when session types are extracted
+// @ts-ignore - T parameter is used in FastMCPEvents below
 export type FastMCPSession<T extends FastMCPSessionAuth = FastMCPSessionAuth> = any;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type FastMCPEvents<T extends FastMCPSessionAuth> = {
   connect: (event: { session: FastMCPSession<T> }) => void;
   disconnect: (event: { session: FastMCPSession<T> }) => void;
@@ -19,8 +24,7 @@ export type FastMCPSessionEvents = {
   rootsChanged: (event: { roots: Root[] }) => void;
 };
 
-// Forward declaration for FastMCPSessionAuth - will be resolved when auth types are extracted
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+
 
 export type LoggingLevel =
   | "alert"
