@@ -104,12 +104,12 @@ function mapUtilsConfig(utils?: {
   ) => string;
 }):
   | {
+      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
       streamContent?: (
         content: any,
         context: any,
         progress?: any,
       ) => Promise<any>;
-      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     }
   | undefined {
   if (!utils) return undefined;
@@ -800,9 +800,30 @@ class FastMCPEventEmitter extends FastMCPEventEmitterBase {}
 export class FastMCP<
   T extends FastMCPSessionAuth = FastMCPSessionAuth,
 > extends FastMCPEventEmitter {
+  public get isRunning(): boolean {
+    return this.#httpStreamServer !== null || this.#sessions.length > 0;
+  }
+
+  public get prompts(): InputPrompt<T>[] {
+    return this.#prompts;
+  }
+
+  public get resources(): Resource<T>[] {
+    return this.#resources;
+  }
+
+  public get resourceTemplates(): InputResourceTemplate<T>[] {
+    return this.#resourcesTemplates;
+  }
+
   public get sessions(): FastMCPSession<T>[] {
     return this.#sessions;
   }
+
+  public get tools(): Tool<T>[] {
+    return this.#tools;
+  }
+
   #authenticate: Authenticate<T> | undefined;
   #httpStreamServer: null | SSEServer = null;
   #logger: Logger;
@@ -816,6 +837,14 @@ export class FastMCP<
 
   constructor(public options: ServerOptions<T>) {
     super();
+
+    // Validate required options
+    if (!options.name) {
+      throw new Error("Server name is required");
+    }
+    if (!options.version) {
+      throw new Error("Server version is required");
+    }
 
     this.#options = options;
     this.#authenticate = options.authenticate;
@@ -1245,7 +1274,11 @@ export type {
   ToolParameters,
 };
 
-// Export utility functions and error classes
-export { imageContent, audioContent } from "./utils/content-helpers.js";
-export { FastMCPError, UnexpectedStateError, UserError } from "./errors/index.js";
+export {
+  FastMCPError,
+  UnexpectedStateError,
+  UserError,
+} from "./errors/index.js";
 export { FastMCPSession } from "./session/index.js";
+// Export utility functions and error classes
+export { audioContent, imageContent } from "./utils/content-helpers.js";

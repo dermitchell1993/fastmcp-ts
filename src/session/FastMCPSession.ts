@@ -84,12 +84,12 @@ export class FastMCPSession<
   #server: Server;
   #tools: Tool<T>[] = [];
   #utils?: {
+    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     streamContent?: (
       content: Content,
       context: Context<T>,
       progress?: Progress,
     ) => Promise<ContentResult>;
-    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
   };
 
   constructor({
@@ -125,12 +125,12 @@ export class FastMCPSession<
     tools: Tool<T>[];
     transportType?: "httpStream" | "stdio";
     utils?: {
+      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
       streamContent?: (
         content: Content,
         context: Context<T>,
         progress?: Progress,
       ) => Promise<ContentResult>;
-      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     };
     version: string;
   }) {

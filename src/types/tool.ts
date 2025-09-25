@@ -7,7 +7,6 @@ export type FastMCPSessionAuth = Record<string, unknown> | undefined;
 // Forward declarations - will be resolved when full imports are available
 export type StandardSchemaV1 = any;
 export type Tool<
-   
   T extends FastMCPSessionAuth,
   Params extends ToolParameters = ToolParameters,
 > = {

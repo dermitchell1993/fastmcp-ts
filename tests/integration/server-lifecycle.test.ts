@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { getRandomPort } from "get-port-please";
+import { describe, expect, it } from "vitest";
+
 import { createTestServer } from "../fixtures.test.js";
 
 describe("Server Lifecycle", () => {
@@ -44,8 +45,8 @@ describe("Server Lifecycle", () => {
 
       await server.start({
         httpStream: {
-          port,
           endpoint: "/custom-mcp",
+          port,
         },
         transportType: "httpStream",
       });
@@ -87,13 +88,13 @@ describe("Server Lifecycle", () => {
       const port = await getRandomPort();
       const server = createTestServer({
         oauth: {
-          enabled: true,
           authorizationServer: {
-            issuer: "https://auth.example.com",
             authorizationEndpoint: "https://auth.example.com/oauth/authorize",
-            tokenEndpoint: "https://auth.example.com/oauth/token",
+            issuer: "https://auth.example.com",
             responseTypesSupported: ["code"],
+            tokenEndpoint: "https://auth.example.com/oauth/token",
           },
+          enabled: true,
         },
       });
 
