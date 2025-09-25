@@ -17,6 +17,7 @@ import {
   Context,
   FastMCPSessionAuth,
   FastMCPSessionEvents,
+  InputPrompt,
   InputResourceTemplate,
   LoggingLevel,
   Progress,
@@ -28,7 +29,7 @@ import {
 import { Logger } from "../types/logger.js";
 import { setupCompleteHandlers } from "./handlers/completion-handlers.js";
 import { setupPromptHandlers } from "./handlers/prompt-handlers.js";
-import { setupResourceHandlers } from "./handlers/resource-handlers.js";
+import { setupResourceHandlers, setupResourceTemplateHandlers } from "./handlers/resource-handlers.js";
 import { setupToolHandlers } from "./handlers/tool-handlers.js";
 import { setupErrorHandling } from "./setup/error-setup.js";
 import { setupLoggingHandlers } from "./setup/logging-setup.js";
@@ -214,7 +215,7 @@ export class FastMCPSession<
           this.addResourceTemplate(resourceTemplate);
         }
 
-        // setupResourceTemplateHandlers(this.#server, resourcesTemplates);
+        setupResourceTemplateHandlers(this.#server, this.#resourceTemplates);
       }
     }
 
@@ -361,7 +362,35 @@ export class FastMCPSession<
     return this.#pingConfig;
   }
 
-  private addPrompt(prompt: Prompt<T>) {
+  private addPrompt(inputPrompt: InputPrompt<T>) {
+    const prompt: Prompt<T> = {
+      ...inputPrompt,
+    };
+
+    // Create completion function that aggregates argument-level completers and enum values
+    if (inputPrompt.arguments?.some((arg) => arg.complete || arg.enum)) {
+      prompt.complete = async (name: string, value: string, auth?: T) => {
+        const argument = inputPrompt.arguments?.find((arg) => arg.name === name);
+        
+        if (argument?.complete) {
+          return await argument.complete(value, auth);
+        }
+        
+        if (argument?.enum) {
+          // Filter enum values based on the input value
+          const filteredValues = argument.enum.filter((enumValue) =>
+            enumValue.toLowerCase().startsWith(value.toLowerCase())
+          );
+          return {
+            values: filteredValues,
+            total: filteredValues.length,
+          };
+        }
+        
+        throw new Error(`No completion available for argument '${name}'`);
+      };
+    }
+
     this.#prompts.push(prompt);
   }
 
@@ -374,6 +403,17 @@ export class FastMCPSession<
       ...resourceTemplate,
       uriTemplate: resourceTemplate.uriTemplate,
     };
+
+    // Create completion function that aggregates argument-level completers
+    if (resourceTemplate.arguments?.some((arg) => arg.complete)) {
+      template.complete = async (name: string, value: string, auth?: T) => {
+        const argument = resourceTemplate.arguments?.find((arg) => arg.name === name);
+        if (argument?.complete) {
+          return await argument.complete(value, auth);
+        }
+        throw new Error(`No completion available for argument '${name}'`);
+      };
+    }
 
     this.#resourceTemplates.push(template);
   }

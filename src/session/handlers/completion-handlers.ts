@@ -24,12 +24,7 @@ export class UnexpectedStateError extends Error {
 const CompletionZodSchema = z.object({
   hasMore: z.optional(z.boolean()),
   total: z.optional(z.number().int()),
-  values: z.array(
-    z.object({
-      description: z.optional(z.string()),
-      value: z.string(),
-    }),
-  ),
+  values: z.array(z.string()),
 });
 
 export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
