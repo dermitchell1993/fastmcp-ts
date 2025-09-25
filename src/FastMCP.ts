@@ -32,6 +32,7 @@ import { fetch } from "undici";
 import parseURITemplate from "uri-templates";
 import { toJsonSchema } from "xsschema";
 import { z } from "zod";
+import { startHTTPServer } from "mcp-proxy";
 // Modular imports from extracted foundation
 import { FastMCPSession } from "./session/index.js";
 import { createStdioTransport, createHttpTransport } from "./server/transport/index.js";
@@ -45,6 +46,56 @@ import {
 } from "./server/endpoints/index.js";
 import { imageContent, audioContent, ImageContent, AudioContent, TextContent } from "./utils/content-helpers.js";
 import { FastMCPError, UnexpectedStateError, UserError, Extra, Extras } from "./errors/index.js";
+
+// Additional imports from session integration
+import { readFile } from "fs/promises";
+
+// Parameter mapping functions to adapt between FastMCP and FastMCPSession interfaces
+function mapPingConfig(ping?: {
+  enabled?: boolean;
+  intervalMs?: number;
+  logLevel?: LoggingLevel;
+}): {
+  enabled: boolean;
+  interval: number;
+  logLevel: "debug" | "warning" | "none";
+} | undefined {
+  if (!ping) return undefined;
+  
+  return {
+    enabled: ping.enabled ?? true,
+    interval: ping.intervalMs ?? 5000,
+    logLevel: (ping.logLevel as "debug" | "warning" | "none") ?? "debug"
+  };
+}
+
+function mapRootsConfig(roots?: {
+  enabled?: boolean;
+}): {
+  listChanged?: boolean;
+} | undefined {
+  if (!roots) return undefined;
+  
+  return {
+    listChanged: roots.enabled
+  };
+}
+
+function mapUtilsConfig(utils?: {
+  formatInvalidParamsErrorMessage?: (issues: readonly StandardSchemaV1.Issue[]) => string;
+}): {
+  streamContent?: (
+    content: any,
+    context: any,
+    progress?: any,
+  ) => Promise<any>;
+} | undefined {
+  if (!utils) return undefined;
+  
+  // For now, we don't map formatInvalidParamsErrorMessage to streamContent
+  // as they serve different purposes. Return undefined to use defaults.
+  return undefined;
+}
 
 import type { ResourceLink, Root, ImageContent, AudioContent, FastMCPSessionAuth, Authenticate, Logger, SSEServer, FastMCPEvents, FastMCPSessionEvents, Context, Progress, SerializableValue, TextContent, ToolParameters } from "./types/index.js";
 
@@ -683,8 +734,28 @@ type ToolAnnotations = {
   title?: string;
 };
 
+/**
+ * Converts camelCase to snake_case for OAuth endpoint responses
+ */
+function camelToSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
 
+/**
+ * Converts an object with camelCase keys to snake_case keys
+ */
+function convertObjectToSnakeCase(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
 
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = camelToSnakeCase(key);
+    result[snakeKey] = value;
+  }
+
+  return result;
+}
 
 const FastMCPEventEmitterBase: {
   new (): StrictEventEmitter<EventEmitter, FastMCPEvents<FastMCPSessionAuth>>;
@@ -860,14 +931,14 @@ export class FastMCP<
         instructions: this.#options.instructions,
         logger: this.#logger,
         name: this.#options.name,
-        ping: this.#options.ping,
+        ping: mapPingConfig(this.#options.ping),
         prompts: this.#prompts,
         resources: this.#resources,
         resourcesTemplates: this.#resourcesTemplates,
-        roots: this.#options.roots,
+        roots: mapRootsConfig(this.#options.roots),
         tools: this.#tools,
         transportType: "stdio",
-        utils: this.#options.utils,
+        utils: mapUtilsConfig(this.#options.utils),
         version: this.#options.version,
       });
 
@@ -964,14 +1035,14 @@ export class FastMCP<
       instructions: this.#options.instructions,
       logger: this.#logger,
       name: this.#options.name,
-      ping: this.#options.ping,
+      ping: mapPingConfig(this.#options.ping),
       prompts: this.#prompts,
       resources: this.#resources,
       resourcesTemplates: this.#resourcesTemplates,
-      roots: this.#options.roots,
+      roots: mapRootsConfig(this.#options.roots),
       tools: allowedTools,
       transportType: "httpStream",
-      utils: this.#options.utils,
+      utils: mapUtilsConfig(this.#options.utils),
       version: this.#options.version,
     });
   }
