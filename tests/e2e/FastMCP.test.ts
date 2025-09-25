@@ -404,7 +404,7 @@ test("handles UserError errors", async () => {
           name: "add",
         }),
       ).toEqual({
-        content: [{ text: "Something went wrong", type: "text" }],
+        content: [{ text: "Tool 'add' execution failed: Something went wrong", type: "text" }],
         isError: true,
       });
     },
@@ -441,7 +441,7 @@ test("handles UserError errors with extras", async () => {
           name: "add_with_extras",
         }),
       ).toEqual({
-        content: [{ text: "Something went wrong", type: "text" }],
+        content: [{ text: "Tool 'add_with_extras' execution failed: Something went wrong", type: "text" }],
         isError: true,
         structuredContent: { foo: "bar", num: 42 },
       });

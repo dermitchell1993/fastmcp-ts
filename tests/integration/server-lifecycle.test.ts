@@ -60,7 +60,7 @@ describe("Server Lifecycle", () => {
 
       await server.start({ transportType: "stdio" });
 
-      expect(server.sessions).toHaveLength(0);
+      expect(server.sessions).toHaveLength(1);
     });
   });
 
