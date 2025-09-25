@@ -8,7 +8,6 @@ export type {
   FastMCPSessionEvents,
   FastMCPSession,
   Root,
-  FastMCPSessionAuth,
   LoggingLevel,
 } from "./server.js";
 
@@ -63,4 +62,4 @@ export type {
 } from "./prompt.js";
 
 // Auth types
-export type { Authenticate } from "./auth.js";
+export type { Authenticate, FastMCPSessionAuth } from "./auth.js";
