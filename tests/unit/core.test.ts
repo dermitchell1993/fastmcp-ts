@@ -35,6 +35,13 @@ describe("FastMCP Core", () => {
   });
 
   describe("Configuration Validation", () => {
+    it("should require name and version", () => {
+      expect(() => {
+        // @ts-expect-error - intentionally passing invalid options
+        new FastMCP({});
+      }).toThrow();
+    });
+
     it("should accept valid ping configuration", () => {
       const server = createTestServer({
         ping: {

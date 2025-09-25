@@ -3,9 +3,9 @@ import { imageContent, audioContent } from "../../src/utils/content-helpers.js";
 
 describe("Content Helpers", () => {
   describe("imageContent", () => {
-    it("should create image content from buffer", async () => {
+    it("should create image content from buffer", () => {
       const buffer = Buffer.from("fake-image-data");
-      const result = await imageContent({ buffer });
+      const result = imageContent({ buffer });
 
       expect(result).toEqual({
         type: "image",
@@ -25,14 +25,14 @@ describe("Content Helpers", () => {
   });
 
   describe("audioContent", () => {
-    it("should create audio content from buffer", async () => {
+    it("should create audio content from buffer", () => {
       const buffer = Buffer.from("fake-audio-data");
-      const result = await audioContent({ buffer });
+      const result = audioContent({ buffer });
 
       expect(result).toEqual({
         type: "audio",
         data: "ZmFrZS1hdWRpby1kYXRh", // base64 encoded
-        mimeType: "audio/mpeg", // default
+        mimeType: "audio/wav", // default
       });
     });
 
