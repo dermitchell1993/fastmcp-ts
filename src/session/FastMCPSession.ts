@@ -350,7 +350,50 @@ export class FastMCPSession<
     });
   }
 
-  private addPrompt(prompt: Prompt<T>) {
+  private addPrompt(inputPrompt: Prompt<T>) {
+    const completers: Record<string, (value: string, auth?: T) => Promise<any>> = {};
+    const enums: Record<string, string[]> = {};
+    const fuseInstances: Record<string, any> = {};
+
+    for (const argument of inputPrompt.arguments ?? []) {
+      if (argument.complete) {
+        completers[argument.name] = argument.complete;
+      }
+
+      if (argument.enum) {
+        enums[argument.name] = argument.enum;
+        // Note: Fuse is not imported yet, will need to add import
+        // fuseInstances[argument.name] = new Fuse(argument.enum, {
+        //   includeScore: true,
+        //   threshold: 0.3,
+        // });
+      }
+    }
+
+    const prompt = {
+      ...inputPrompt,
+      complete: async (name: string, value: string, auth?: T) => {
+        if (completers[name]) {
+          return await completers[name](value, auth);
+        }
+
+        if (enums[name]) {
+          // Simple string matching for now, can add Fuse later
+          const matches = enums[name].filter(item => 
+            item.toLowerCase().includes(value.toLowerCase())
+          );
+          return {
+            total: matches.length,
+            values: matches,
+          };
+        }
+
+        return {
+          values: [],
+        };
+      },
+    };
+
     this.#prompts.push(prompt);
   }
 

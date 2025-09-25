@@ -8,12 +8,7 @@ import { UnexpectedStateError } from "../../errors/index.js";
 const CompletionZodSchema = z.object({
   hasMore: z.optional(z.boolean()),
   total: z.optional(z.number().int()),
-  values: z.array(
-    z.object({
-      value: z.string(),
-      description: z.optional(z.string()),
-    }),
-  ),
+  values: z.array(z.string()).max(100),
 });
 
 export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
