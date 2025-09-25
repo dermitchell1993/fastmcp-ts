@@ -1,5 +1,4 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { EventStore } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -27,7 +26,6 @@ import { StandardSchemaV1 } from "@standard-schema/spec";
 import { EventEmitter } from "events";
 import Fuse from "fuse.js";
 import http from "http";
-import { startHTTPServer } from "mcp-proxy";
 import { StrictEventEmitter } from "strict-event-emitter-types";
 import { setTimeout as delay } from "timers/promises";
 import { fetch } from "undici";
@@ -43,28 +41,7 @@ import { FastMCPError, UnexpectedStateError, UserError, Extra, Extras } from "./
 
 import type { ResourceLink, Root, ImageContent, AudioContent, FastMCPSessionAuth, Authenticate, Logger, SSEServer, FastMCPEvents, FastMCPSessionEvents, Context, Progress, SerializableValue, TextContent, ToolParameters } from "./types/index.js";
 
-<<<<<<< HEAD
-=======
-export type SSEServer = {
-  close: () => Promise<void>;
-};
 
-type FastMCPEvents<T extends FastMCPSessionAuth> = {
-  connect: (event: { session: FastMCPSession<T> }) => void;
-  disconnect: (event: { session: FastMCPSession<T> }) => void;
-};
-
-type FastMCPSessionEvents = {
-  error: (event: { error: Error }) => void;
-  ready: () => void;
-  rootsChanged: (event: { roots: Root[] }) => void;
-};
-
-
-
-type ToolParameters = StandardSchemaV1;
-
->>>>>>> origin/refactor/integration-utilities
 
 const TextContentZodSchema = z
   .object({
@@ -888,25 +865,10 @@ export class FastMCP<
     const config = this.#parseRuntimeConfig(options);
 
     if (config.transportType === "stdio") {
-      const transport = new StdioServerTransport();
-
-      // For stdio transport, if authenticate function is provided, call it
-      // with undefined request (since stdio doesn't have HTTP request context)
-      let auth: T | undefined;
-
-      if (this.#authenticate) {
-        try {
-          auth = await this.#authenticate(
-            undefined as unknown as http.IncomingMessage,
-          );
-        } catch (error) {
-          this.#logger.error(
-            "[FastMCP error] Authentication failed for stdio transport:",
-            error instanceof Error ? error.message : String(error),
-          );
-          // Continue without auth if authentication fails
-        }
-      }
+      const { transport, auth } = await createStdioTransport({
+        authenticate: this.#authenticate,
+        logger: this.#logger,
+      });
 
       const session = new FastMCPSession<T>({
         auth,
@@ -955,94 +917,39 @@ export class FastMCP<
     } else if (config.transportType === "httpStream") {
       const httpConfig = config.httpStream;
 
-      if (httpConfig.stateless) {
-        // Stateless mode - create new server instance for each request
-        this.#logger.info(
-          `[FastMCP info] Starting server in stateless mode on HTTP Stream at http://${httpConfig.host}:${httpConfig.port}${httpConfig.endpoint}`,
-        );
-
-        this.#httpStreamServer = await startHTTPServer<FastMCPSession<T>>({
-          createServer: async (request) => {
-            let auth: T | undefined;
-
-            if (this.#authenticate) {
-              auth = await this.#authenticate(request);
-            }
-
-            // In stateless mode, create a new session for each request
-            // without persisting it in the sessions array
-            return this.#createSession(auth);
-          },
-          enableJsonResponse: httpConfig.enableJsonResponse,
-          eventStore: httpConfig.eventStore,
-          host: httpConfig.host,
-          // In stateless mode, we don't track sessions
-          onClose: async () => {
-            // No session tracking in stateless mode
-          },
-          onConnect: async () => {
-            // No persistent session tracking in stateless mode
-            this.#logger.debug(
-              `[FastMCP debug] Stateless HTTP Stream request handled`,
-            );
-          },
-          onUnhandledRequest: async (req, res) => {
-            await this.#handleUnhandledRequest(req, res, true, httpConfig.host);
-          },
-          port: httpConfig.port,
-          stateless: true,
-          streamEndpoint: httpConfig.endpoint,
-        });
-      } else {
-        // Regular mode with session management
-        this.#httpStreamServer = await startHTTPServer<FastMCPSession<T>>({
-          createServer: async (request) => {
-            let auth: T | undefined;
-
-            if (this.#authenticate) {
-              auth = await this.#authenticate(request);
-            }
-
-            return this.#createSession(auth);
-          },
-          enableJsonResponse: httpConfig.enableJsonResponse,
-          eventStore: httpConfig.eventStore,
-          host: httpConfig.host,
-          onClose: async (session) => {
-            const sessionIndex = this.#sessions.indexOf(session);
-
-            if (sessionIndex !== -1) this.#sessions.splice(sessionIndex, 1);
-
-            this.emit("disconnect", {
-              session: session as FastMCPSession<FastMCPSessionAuth>,
-            });
-          },
-          onConnect: async (session) => {
-            this.#sessions.push(session);
-
-            this.#logger.info(`[FastMCP info] HTTP Stream session established`);
-
-            this.emit("connect", {
-              session: session as FastMCPSession<FastMCPSessionAuth>,
-            });
-          },
-
-          onUnhandledRequest: async (req, res) => {
-            await this.#handleUnhandledRequest(
-              req,
-              res,
-              false,
-              httpConfig.host,
-            );
-          },
-          port: httpConfig.port,
-          streamEndpoint: httpConfig.endpoint,
-        });
-
-        this.#logger.info(
-          `[FastMCP info] server is running on HTTP Stream at http://${httpConfig.host}:${httpConfig.port}${httpConfig.endpoint}`,
-        );
-      }
+      this.#httpStreamServer = await createHttpTransport({
+        authenticate: this.#authenticate,
+        createSession: (auth: T | undefined) => this.#createSession(auth),
+        enableJsonResponse: httpConfig.enableJsonResponse,
+        eventStore: httpConfig.eventStore,
+        host: httpConfig.host,
+        logger: this.#logger,
+        onClose: httpConfig.stateless ? undefined : async (session) => {
+          const sessionIndex = this.#sessions.indexOf(session);
+          if (sessionIndex !== -1) this.#sessions.splice(sessionIndex, 1);
+          this.emit("disconnect", {
+            session: session as FastMCPSession<FastMCPSessionAuth>,
+          });
+        },
+        onConnect: httpConfig.stateless ? undefined : async (session) => {
+          this.#sessions.push(session);
+          this.#logger.info(`[FastMCP info] HTTP Stream session established`);
+          this.emit("connect", {
+            session: session as FastMCPSession<FastMCPSessionAuth>,
+          });
+        },
+        onUnhandledRequest: async (req, res) => {
+          await this.#handleUnhandledRequest(
+            req,
+            res,
+            httpConfig.stateless,
+            httpConfig.host,
+          );
+        },
+        port: httpConfig.port,
+        stateless: httpConfig.stateless,
+        streamEndpoint: httpConfig.endpoint,
+      });
     } else {
       throw new Error("Invalid transport type");
     }
