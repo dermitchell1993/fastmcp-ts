@@ -152,7 +152,7 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
         const friendlyErrors = utils?.formatInvalidParamsErrorMessage
           ? utils.formatInvalidParamsErrorMessage(parsed.issues)
           : parsed.issues
-              .map((issue) => {
+              .map((issue: any) => {
                 const path = issue.path?.join(".") || "root";
                 return `${path}: ${issue.message}`;
               })
