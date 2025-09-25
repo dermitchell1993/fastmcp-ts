@@ -1,0 +1,3 @@
+# Use pnpm as the package manager for this project
+# This prevents npm from creating package-lock.json files
+package-manager-strict: true
