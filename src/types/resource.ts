@@ -1,5 +1,6 @@
-// Forward declarations
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+import type { Completion } from "./prompt.js";
+import type { FastMCPSessionAuth } from "./session.js";
+import type { Root } from "@modelcontextprotocol/sdk/types.js";
 
 export type InputResourceTemplate<
   T extends FastMCPSessionAuth,
@@ -18,14 +19,14 @@ export type InputResourceTemplate<
 };
 
 export type InputResourceTemplateArgument<T extends FastMCPSessionAuth> = {
-  complete?: (value: string, auth?: T) => Promise<any>; // Completion type
+  complete?: (value: string, auth?: T) => Promise<Completion>
   description?: string;
   name: string;
   required?: boolean;
 };
 
 export type Resource<T extends FastMCPSessionAuth> = {
-  complete?: (name: string, value: string, auth?: T) => Promise<any>; // Completion type
+  complete?: (name: string, value: string, auth?: T) => Promise<Completion>
   description?: string;
   load: (auth?: T) => Promise<ResourceResult | ResourceResult[]>;
   mimeType?: string;
@@ -61,7 +62,7 @@ export type ResourceTemplate<
     ResourceTemplateArgument<T>[] = ResourceTemplateArgument<T>[],
 > = {
   arguments: Arguments;
-  complete?: (name: string, value: string, auth?: T) => Promise<any>; // Completion type
+  complete?: (name: string, value: string, auth?: T) => Promise<Completion>
   description?: string;
   load: (
     args: ResourceTemplateArgumentsToObject<Arguments>,
@@ -73,7 +74,7 @@ export type ResourceTemplate<
 };
 
 export type ResourceTemplateArgument<T extends FastMCPSessionAuth> = {
-  complete?: (value: string, auth?: T) => Promise<any>; // Completion type
+  complete?: (value: string, auth?: T) => Promise<Completion>
   description?: string;
   name: string;
   required?: boolean;
@@ -83,4 +84,3 @@ export type ResourceTemplateArgumentsToObject<T extends { name: string }[]> = {
   [K in T[number]["name"]]: string;
 };
 
-export type Root = any; // From MCP SDK

@@ -1,11 +1,6 @@
-export type Content = any;
-export type Context<_T extends FastMCPSessionAuth> = any;
-
-// Forward declarations for dependencies
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
-
-// Forward declarations - will be resolved when full imports are available
-export type StandardSchemaV1 = any;
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import type { Content } from "./content.js";
+import type { Context, FastMCPSessionAuth } from "./session.js";
 export type Tool<
    
   T extends FastMCPSessionAuth,
@@ -22,7 +17,7 @@ export type Tool<
   description?: string;
 
   execute: (
-    args: any, // StandardSchemaV1.InferOutput<Params> - will be resolved when imports available
+    args: StandardSchemaV1.InferOutput<Params>,
     context: Context<T>,
   ) => Promise<
     { content: Content[]; isError?: boolean } | Content | string | void

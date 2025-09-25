@@ -1,8 +1,8 @@
-import { Content } from "./content.js";
+import { AudioContent, Content, ImageContent, TextContent } from "./content.js";
 
 export type Context<T extends FastMCPSessionAuth> = {
   client: {
-    version: ReturnType<any>; // Will be resolved when Server type is available
+    version: string;
   };
   log: {
     debug: (message: string, data?: SerializableValue) => void;
@@ -30,7 +30,7 @@ export type Progress = {
 };
 
 export type SamplingResponse = {
-  content: any; // AudioContent | ImageContent | TextContent - will be resolved with content types
+  content: AudioContent | ImageContent | TextContent;
   model: string;
   role: "assistant" | "user";
   stopReason?: "endTurn" | "maxTokens" | "stopSequence" | string;

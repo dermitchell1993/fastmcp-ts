@@ -1,13 +1,11 @@
+import type { FastMCPSession } from "../session/index.js";
+import type { FastMCPSessionAuth } from "./session.js";
+import type { Root } from "@modelcontextprotocol/sdk/types.js";
+
 export type FastMCPEvents<T extends FastMCPSessionAuth> = {
   connect: (event: { session: FastMCPSession<T> }) => void;
   disconnect: (event: { session: FastMCPSession<T> }) => void;
 };
-
-// Forward declaration for FastMCPSession - will be resolved when session types are extracted
-export type FastMCPSession<_T extends FastMCPSessionAuth> = any;
-
-// Forward declaration for FastMCPSessionAuth - will be resolved when auth types are extracted
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
 
 export type FastMCPSessionEvents = {
   error: (event: { error: Error }) => void;
@@ -25,8 +23,6 @@ export type LoggingLevel =
   | "notice"
   | "warning";
 
-// Forward declaration for Root - will be resolved when resource types are extracted
-export type Root = any;
 
 export type SSEServer = {
   close: () => Promise<void>;
