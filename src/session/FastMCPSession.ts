@@ -2,14 +2,17 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   ClientCapabilities,
+  CreateMessageRequestSchema,
   ErrorCode,
   McpError,
+  RequestOptions,
   Root,
   ServerCapabilities,
 } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
 import { StrictEventEmitter } from "strict-event-emitter-types";
 import { setTimeout as delay } from "timers/promises";
+import { z } from "zod";
 
 import {
   Context,
@@ -24,6 +27,7 @@ import {
   FastMCPSessionAuth,
   ResourceTemplate,
   InputResourceTemplate,
+  SamplingResponse,
 } from "../types/index.js";
 import { Logger } from "../types/logger.js";
 
@@ -229,6 +233,13 @@ export class FastMCPSession<
     } catch (error) {
       this.#logger.error("[FastMCP error]", "could not close server", error);
     }
+  }
+
+  public async requestSampling(
+    message: z.infer<typeof CreateMessageRequestSchema>["params"],
+    options?: RequestOptions,
+  ): Promise<SamplingResponse> {
+    return this.#server.createMessage(message, options);
   }
 
   public async connect(transport: Transport) {
