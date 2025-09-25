@@ -27,7 +27,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { EventEmitter } from "events";
-import { readFile } from "fs/promises";
 import Fuse from "fuse.js";
 import http from "http";
 import { startHTTPServer } from "mcp-proxy";
@@ -37,6 +36,8 @@ import { fetch } from "undici";
 import parseURITemplate from "uri-templates";
 import { toJsonSchema } from "xsschema";
 import { z } from "zod";
+import { imageContent, audioContent, ImageContent, AudioContent, TextContent } from "./utils/content-helpers.js";
+import { FastMCPError, UnexpectedStateError, UserError } from "./errors/index.js";
 
 export interface Logger {
   debug(...args: unknown[]): void;
@@ -61,209 +62,10 @@ type FastMCPSessionEvents = {
   rootsChanged: (event: { roots: Root[] }) => void;
 };
 
-export const imageContent = async (
-  input: { buffer: Buffer } | { path: string } | { url: string },
-): Promise<ImageContent> => {
-  let rawData: Buffer;
 
-  try {
-    if ("url" in input) {
-      try {
-        const response = await fetch(input.url);
-
-        if (!response.ok) {
-          throw new Error(
-            `Server responded with status: ${response.status} - ${response.statusText}`,
-          );
-        }
-
-        rawData = Buffer.from(await response.arrayBuffer());
-      } catch (error) {
-        throw new Error(
-          `Failed to fetch image from URL (${input.url}): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    } else if ("path" in input) {
-      try {
-        rawData = await readFile(input.path);
-      } catch (error) {
-        throw new Error(
-          `Failed to read image from path (${input.path}): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    } else if ("buffer" in input) {
-      rawData = input.buffer;
-    } else {
-      throw new Error(
-        "Invalid input: Provide a valid 'url', 'path', or 'buffer'",
-      );
-    }
-
-    const { fileTypeFromBuffer } = await import("file-type");
-    const mimeType = await fileTypeFromBuffer(rawData);
-
-    if (!mimeType || !mimeType.mime.startsWith("image/")) {
-      console.warn(
-        `Warning: Content may not be a valid image. Detected MIME: ${
-          mimeType?.mime || "unknown"
-        }`,
-      );
-    }
-
-    const base64Data = rawData.toString("base64");
-
-    return {
-      data: base64Data,
-      mimeType: mimeType?.mime ?? "image/png",
-      type: "image",
-    } as const;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error(`Unexpected error processing image: ${String(error)}`);
-    }
-  }
-};
-
-export const audioContent = async (
-  input: { buffer: Buffer } | { path: string } | { url: string },
-): Promise<AudioContent> => {
-  let rawData: Buffer;
-
-  try {
-    if ("url" in input) {
-      try {
-        const response = await fetch(input.url);
-
-        if (!response.ok) {
-          throw new Error(
-            `Server responded with status: ${response.status} - ${response.statusText}`,
-          );
-        }
-
-        rawData = Buffer.from(await response.arrayBuffer());
-      } catch (error) {
-        throw new Error(
-          `Failed to fetch audio from URL (${input.url}): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    } else if ("path" in input) {
-      try {
-        rawData = await readFile(input.path);
-      } catch (error) {
-        throw new Error(
-          `Failed to read audio from path (${input.path}): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    } else if ("buffer" in input) {
-      rawData = input.buffer;
-    } else {
-      throw new Error(
-        "Invalid input: Provide a valid 'url', 'path', or 'buffer'",
-      );
-    }
-
-    const { fileTypeFromBuffer } = await import("file-type");
-    const mimeType = await fileTypeFromBuffer(rawData);
-
-    if (!mimeType || !mimeType.mime.startsWith("audio/")) {
-      console.warn(
-        `Warning: Content may not be a valid audio file. Detected MIME: ${
-          mimeType?.mime || "unknown"
-        }`,
-      );
-    }
-
-    const base64Data = rawData.toString("base64");
-
-    return {
-      data: base64Data,
-      mimeType: mimeType?.mime ?? "audio/mpeg",
-      type: "audio",
-    } as const;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error(`Unexpected error processing audio: ${String(error)}`);
-    }
-  }
-};
-
-type Context<T extends FastMCPSessionAuth> = {
-  client: {
-    version: ReturnType<Server["getClientVersion"]>;
-  };
-  log: {
-    debug: (message: string, data?: SerializableValue) => void;
-    error: (message: string, data?: SerializableValue) => void;
-    info: (message: string, data?: SerializableValue) => void;
-    warn: (message: string, data?: SerializableValue) => void;
-  };
-  reportProgress: (progress: Progress) => Promise<void>;
-  session: T | undefined;
-  streamContent: (content: Content | Content[]) => Promise<void>;
-};
-
-type Extra = unknown;
-
-type Extras = Record<string, Extra>;
-
-type Literal = boolean | null | number | string | undefined;
-
-type Progress = {
-  /**
-   * The progress thus far. This should increase every time progress is made, even if the total is unknown.
-   */
-  progress: number;
-  /**
-   * Total number of items to process (or total progress required), if known.
-   */
-  total?: number;
-};
-
-type SerializableValue =
-  | { [key: string]: SerializableValue }
-  | Literal
-  | SerializableValue[];
-
-type TextContent = {
-  text: string;
-  type: "text";
-};
 
 type ToolParameters = StandardSchemaV1;
 
-abstract class FastMCPError extends Error {
-  public constructor(message?: string) {
-    super(message);
-    this.name = new.target.name;
-  }
-}
-
-export class UnexpectedStateError extends FastMCPError {
-  public extras?: Extras;
-
-  public constructor(message: string, extras?: Extras) {
-    super(message);
-    this.name = new.target.name;
-    this.extras = extras;
-  }
-}
-
-/**
- * An error that is meant to be surfaced to the user.
- */
-export class UserError extends UnexpectedStateError {}
 
 const TextContentZodSchema = z
   .object({
@@ -273,13 +75,8 @@ const TextContentZodSchema = z
     text: z.string(),
     type: z.literal("text"),
   })
-  .strict() satisfies z.ZodType<TextContent>;
+  .strict() ;
 
-type ImageContent = {
-  data: string;
-  mimeType: string;
-  type: "image";
-};
 
 const ImageContentZodSchema = z
   .object({
@@ -293,13 +90,8 @@ const ImageContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("image"),
   })
-  .strict() satisfies z.ZodType<ImageContent>;
+  .strict() ;
 
-type AudioContent = {
-  data: string;
-  mimeType: string;
-  type: "audio";
-};
 
 const AudioContentZodSchema = z
   .object({
@@ -310,7 +102,7 @@ const AudioContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("audio"),
   })
-  .strict() satisfies z.ZodType<AudioContent>;
+  .strict() ;
 
 type ResourceContent = {
   resource: {
@@ -326,7 +118,7 @@ const ResourceContentZodSchema = z
   .object({
     resource: z.object({
       blob: z.string().optional(),
-      mimeType: z.string().optional(),
+      mimeType: z.string(),
       text: z.string().optional(),
       uri: z.string(),
     }),
@@ -336,7 +128,7 @@ const ResourceContentZodSchema = z
 
 const ResourceLinkZodSchema = z.object({
   description: z.string().optional(),
-  mimeType: z.string().optional(),
+  mimeType: z.string(),
   name: z.string(),
   title: z.string().optional(),
   type: z.literal("resource_link"),
