@@ -118,7 +118,6 @@ describe("Input Validation", () => {
       const server = createTestServer();
 
       server.addResource({
-        name: "Path Traversal Resource",
         uri: "file://../../../etc/passwd",
         load: async () => {
           // This should be handled safely by the file system

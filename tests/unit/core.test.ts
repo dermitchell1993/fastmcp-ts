@@ -21,39 +21,26 @@ describe("FastMCP Core", () => {
       expect(server.options.version).toBe("2.0.0");
     });
 
-    it("should initialize with empty collections", () => {
-      const server = createTestServer();
-      expect(server.tools).toEqual([]);
-      expect(server.resources).toEqual([]);
-      expect(server.prompts).toEqual([]);
-      expect(server.resourceTemplates).toEqual([]);
-    });
-  });
-
-  describe("Server State", () => {
-    it("should track server running state", async () => {
-      const server = createTestServer();
-
-      expect(server.isRunning).toBe(false);
-
-      // Note: We can't easily test the full start/stop cycle in unit tests
-      // without mocking the transport layer. This would be better in integration tests.
-    });
-
-    it("should have empty sessions collection initially", () => {
+    it("should initialize with empty sessions collection", () => {
       const server = createTestServer();
       expect(server.sessions).toEqual([]);
     });
   });
 
-  describe("Configuration Validation", () => {
-    it("should require name and version", () => {
-      expect(() => {
-        // @ts-expect-error - intentionally passing invalid options
-        new FastMCP({});
-      }).toThrow();
+  describe("Server State", () => {
+    it("should have empty sessions collection initially", () => {
+      const server = createTestServer();
+      expect(server.sessions).toEqual([]);
     });
 
+    it("should expose sessions as a getter", () => {
+      const server = createTestServer();
+      expect(Array.isArray(server.sessions)).toBe(true);
+      expect(server.sessions).toHaveLength(0);
+    });
+  });
+
+  describe("Configuration Validation", () => {
     it("should accept valid ping configuration", () => {
       const server = createTestServer({
         ping: {

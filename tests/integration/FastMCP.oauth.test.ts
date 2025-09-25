@@ -1,7 +1,7 @@
 import { getRandomPort } from "get-port-please";
 import { describe, expect, it } from "vitest";
 
-import { FastMCP } from "./FastMCP.js";
+import { FastMCP } from "../../src/FastMCP.js";
 
 describe("FastMCP OAuth Support", () => {
   it("should serve OAuth authorization server metadata", async () => {

@@ -26,7 +26,7 @@ import {
   imageContent,
   type TextContent,
   UserError,
-} from "./FastMCP.js";
+} from "../../src/FastMCP.js";
 
 const runWithTestServer = async ({
   client: createClient,

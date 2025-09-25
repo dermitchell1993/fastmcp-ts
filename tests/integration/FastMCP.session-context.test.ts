@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { FastMCP } from "./FastMCP.js";
+import { FastMCP } from "../../src/FastMCP.js";
 
 interface TestAuth {
   [key: string]: unknown; // Required for FastMCPSessionAuth compatibility
