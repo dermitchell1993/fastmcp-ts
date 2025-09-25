@@ -3,14 +3,14 @@ name: Security Checks
 on:
   schedule:
     # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 jobs:
   security-audit:

@@ -8,63 +8,76 @@ import {
 import { setTimeout as delay } from "timers/promises";
 import { toJsonSchema } from "xsschema";
 import { z } from "zod";
+
 import {
-  Tool,
-  FastMCPSessionAuth,
+  AudioContent,
   Content,
   ContentResult,
-  SerializableValue,
-  Progress,
-  TextContent,
+  FastMCPSessionAuth,
   ImageContent,
-  AudioContent,
+  Progress,
   ResourceContent,
   ResourceLink,
+  SerializableValue,
+  TextContent,
+  Tool,
 } from "../../types/index.js";
 import { Logger } from "../../types/logger.js";
-import { UserError, UnexpectedStateError } from "../../errors/index.js";
+
+// Error classes for tool handlers
+export class UnexpectedStateError extends Error {
+  public extras?: any;
+
+  public constructor(message: string, extras?: any) {
+    super(message);
+    this.name = new.target.name;
+    this.extras = extras;
+  }
+}
+
+export class UserError extends UnexpectedStateError {}
 
 // Content validation schemas
 const TextContentZodSchema = z
   .object({
-    type: z.literal("text"),
     text: z.string(),
+    type: z.literal("text"),
   })
   .strict() satisfies z.ZodType<TextContent>;
 
 const ImageContentZodSchema = z
   .object({
-    type: z.literal("image"),
     data: z.string(),
     mimeType: z.string(),
+    type: z.literal("image"),
   })
   .strict() satisfies z.ZodType<ImageContent>;
 
 const AudioContentZodSchema = z
   .object({
-    type: z.literal("audio"),
     data: z.string(),
     mimeType: z.string(),
+    type: z.literal("audio"),
   })
   .strict() satisfies z.ZodType<AudioContent>;
 
 const ResourceContentZodSchema = z
   .object({
-    type: z.literal("resource"),
     resource: z.object({
-      uri: z.string(),
-      text: z.string().optional(),
       mimeType: z.string().optional(),
+      text: z.string().optional(),
+      uri: z.string(),
     }),
+    type: z.literal("resource"),
   })
   .strict() satisfies z.ZodType<ResourceContent>;
 
 const ResourceLinkZodSchema = z
   .object({
-    type: z.literal("resource_link"),
     resource: z.object({
       uri: z.string(),
     }),
+    type: z.literal("resource_link"),
   })
   .strict() satisfies z.ZodType<ResourceLink>;
 
@@ -88,15 +101,15 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
   tools: Tool<T>[],
   logger: Logger,
   utils?: {
+    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     streamContent?: (
       content: Content,
       context: any,
       progress?: Progress,
     ) => Promise<ContentResult>;
-    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
   },
   auth?: T,
-  needsEventLoopFlush: boolean = false
+  needsEventLoopFlush: boolean = false,
 ) {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {

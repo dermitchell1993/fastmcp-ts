@@ -1,11 +1,15 @@
 import { EventStore } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import http from "http";
 import { startHTTPServer } from "mcp-proxy";
+
+import { FastMCPSessionAuth } from "../../types/auth.js";
 import { Logger } from "../../types/logger.js";
 import { SSEServer } from "../../types/server.js";
-import { FastMCPSessionAuth } from "../../types/auth.js";
 
-export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType> {
+export interface HttpTransportConfig<
+  T extends FastMCPSessionAuth,
+  SessionType,
+> {
   authenticate?: (request: http.IncomingMessage) => Promise<T>;
   createSession: (auth: T | undefined) => SessionType;
   enableJsonResponse?: boolean;
@@ -14,7 +18,10 @@ export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType> 
   logger: Logger;
   onClose?: (session: SessionType) => Promise<void>;
   onConnect?: (session: SessionType) => Promise<void>;
-  onUnhandledRequest: (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>;
+  onUnhandledRequest: (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ) => Promise<void>;
   port: number;
   stateless?: boolean;
   streamEndpoint: string;
@@ -23,9 +30,10 @@ export interface HttpTransportConfig<T extends FastMCPSessionAuth, SessionType> 
 /**
  * Creates and configures an HTTP transport for FastMCP
  */
-export async function createHttpTransport<T extends FastMCPSessionAuth, SessionType>(
-  config: HttpTransportConfig<T, SessionType>
-): Promise<SSEServer> {
+export async function createHttpTransport<
+  T extends FastMCPSessionAuth,
+  SessionType,
+>(config: HttpTransportConfig<T, SessionType>): Promise<SSEServer> {
   const {
     authenticate,
     createSession,
@@ -68,9 +76,7 @@ export async function createHttpTransport<T extends FastMCPSessionAuth, SessionT
       },
       onConnect: async () => {
         // No persistent session tracking in stateless mode
-        logger.debug(
-          `[FastMCP debug] Stateless HTTP Stream request handled`,
-        );
+        logger.debug(`[FastMCP debug] Stateless HTTP Stream request handled`);
       },
       onUnhandledRequest: async (req, res) => {
         await onUnhandledRequest(req, res);

@@ -1,6 +1,6 @@
 /**
  * FastMCP Error Classes
- * 
+ *
  * Base error classes for FastMCP framework with inheritance hierarchy.
  */
 
@@ -29,4 +29,3 @@ export class UnexpectedStateError extends FastMCPError {
  * An error that is meant to be surfaced to the user.
  */
 export class UserError extends UnexpectedStateError {}
-

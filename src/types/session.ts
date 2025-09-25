@@ -1,8 +1,5 @@
 import { Content } from "./content.js";
 
-// Forward declarations
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
-
 export type Context<T extends FastMCPSessionAuth> = {
   client: {
     version: ReturnType<any>; // Will be resolved when Server type is available
@@ -18,6 +15,9 @@ export type Context<T extends FastMCPSessionAuth> = {
   streamContent: (content: Content | Content[]) => Promise<void>;
 };
 
+// Forward declarations
+export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+
 export type Progress = {
   /**
    * The progress thus far. This should increase every time progress is made, even if the total is unknown.
@@ -29,18 +29,18 @@ export type Progress = {
   total?: number;
 };
 
-export type SerializableValue =
-  | { [key: string]: SerializableValue }
-  | boolean
-  | null
-  | number
-  | string
-  | undefined
-  | SerializableValue[];
-
 export type SamplingResponse = {
   content: any; // AudioContent | ImageContent | TextContent - will be resolved with content types
   model: string;
   role: "assistant" | "user";
   stopReason?: "endTurn" | "maxTokens" | "stopSequence" | string;
 };
+
+export type SerializableValue =
+  | { [key: string]: SerializableValue }
+  | boolean
+  | null
+  | number
+  | SerializableValue[]
+  | string
+  | undefined;

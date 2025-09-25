@@ -24,83 +24,117 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { EventEmitter } from "events";
+// Additional imports from session integration
+import { readFile } from "fs/promises";
 import Fuse from "fuse.js";
 import http from "http";
+import { startHTTPServer } from "mcp-proxy";
 import { StrictEventEmitter } from "strict-event-emitter-types";
 import { setTimeout as delay } from "timers/promises";
 import { fetch } from "undici";
 import parseURITemplate from "uri-templates";
 import { toJsonSchema } from "xsschema";
 import { z } from "zod";
-import { startHTTPServer } from "mcp-proxy";
-// Modular imports from extracted foundation
-import { FastMCPSession } from "./session/index.js";
-import { createStdioTransport, createHttpTransport } from "./server/transport/index.js";
+
+import {
+  Extra,
+  Extras,
+  FastMCPError,
+  UnexpectedStateError,
+  UserError,
+} from "./errors/index.js";
 import {
   handleHealthEndpoint,
-  handleReadinessEndpoint,
   handleOAuthEndpoints,
+  handleReadinessEndpoint,
   type HealthEndpointConfig,
-  type ReadinessEndpointConfig,
   type OAuthEndpointConfig,
+  type ReadinessEndpointConfig,
 } from "./server/endpoints/index.js";
-import { imageContent, audioContent, ImageContent, AudioContent, TextContent } from "./utils/content-helpers.js";
-import { FastMCPError, UnexpectedStateError, UserError, Extra, Extras } from "./errors/index.js";
-
-// Additional imports from session integration
-import { readFile } from "fs/promises";
+import {
+  createHttpTransport,
+  createStdioTransport,
+} from "./server/transport/index.js";
+// Modular imports from extracted foundation
+import { FastMCPSession } from "./session/index.js";
+import {
+  audioContent,
+  AudioContent,
+  imageContent,
+  ImageContent,
+  TextContent,
+} from "./utils/content-helpers.js";
 
 // Parameter mapping functions to adapt between FastMCP and FastMCPSession interfaces
 function mapPingConfig(ping?: {
   enabled?: boolean;
   intervalMs?: number;
   logLevel?: LoggingLevel;
-}): {
-  enabled: boolean;
-  interval: number;
-  logLevel: "debug" | "warning" | "none";
-} | undefined {
+}):
+  | {
+      enabled: boolean;
+      interval: number;
+      logLevel: "debug" | "none" | "warning";
+    }
+  | undefined {
   if (!ping) return undefined;
-  
+
   return {
     enabled: ping.enabled ?? true,
     interval: ping.intervalMs ?? 5000,
-    logLevel: (ping.logLevel as "debug" | "warning" | "none") ?? "debug"
+    logLevel: (ping.logLevel as "debug" | "none" | "warning") ?? "debug",
   };
 }
 
-function mapRootsConfig(roots?: {
-  enabled?: boolean;
-}): {
-  listChanged?: boolean;
-} | undefined {
+function mapRootsConfig(roots?: { enabled?: boolean }):
+  | {
+      listChanged?: boolean;
+    }
+  | undefined {
   if (!roots) return undefined;
-  
+
   return {
-    listChanged: roots.enabled
+    listChanged: roots.enabled,
   };
 }
 
 function mapUtilsConfig(utils?: {
-  formatInvalidParamsErrorMessage?: (issues: readonly StandardSchemaV1.Issue[]) => string;
-}): {
-  streamContent?: (
-    content: any,
-    context: any,
-    progress?: any,
-  ) => Promise<any>;
-  formatInvalidParamsErrorMessage?: (issues: any[]) => string;
-} | undefined {
+  formatInvalidParamsErrorMessage?: (
+    issues: readonly StandardSchemaV1.Issue[],
+  ) => string;
+}):
+  | {
+      streamContent?: (
+        content: any,
+        context: any,
+        progress?: any,
+      ) => Promise<any>;
+    }
+  | undefined {
   if (!utils) return undefined;
-  
-  return {
-    formatInvalidParamsErrorMessage: utils.formatInvalidParamsErrorMessage,
-  };
+
+  // For now, we don't map formatInvalidParamsErrorMessage to streamContent
+  // as they serve different purposes. Return undefined to use defaults.
+  return undefined;
 }
 
-import type { ResourceLink, Root, ImageContent, AudioContent, FastMCPSessionAuth, Authenticate, Logger, SSEServer, FastMCPEvents, FastMCPSessionEvents, Context, Progress, SerializableValue, TextContent, ToolParameters } from "./types/index.js";
-
-
+import type {
+  AudioContent,
+  Authenticate,
+  Context,
+  FastMCPEvents,
+  FastMCPSessionAuth,
+  FastMCPSessionEvents,
+  ImageContent,
+  Logger,
+  Progress,
+  ResourceLink,
+  Root,
+  SerializableValue,
+  SSEServer,
+  TextContent,
+  ToolParameters,
+} from "./types/index.js";
 
 const TextContentZodSchema = z
   .object({
@@ -110,8 +144,7 @@ const TextContentZodSchema = z
     text: z.string(),
     type: z.literal("text"),
   })
-  .strict() ;
-
+  .strict();
 
 const ImageContentZodSchema = z
   .object({
@@ -125,8 +158,7 @@ const ImageContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("image"),
   })
-  .strict() ;
-
+  .strict();
 
 const AudioContentZodSchema = z
   .object({
@@ -137,7 +169,7 @@ const AudioContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("audio"),
   })
-  .strict() ;
+  .strict();
 
 type ResourceContent = {
   resource: {
@@ -922,7 +954,7 @@ export class FastMCP<
     const config = this.#parseRuntimeConfig(options);
 
     if (config.transportType === "stdio") {
-      const { transport, auth } = await createStdioTransport({
+      const { auth, transport } = await createStdioTransport({
         authenticate: this.#authenticate,
         logger: this.#logger,
       });
@@ -981,20 +1013,26 @@ export class FastMCP<
         eventStore: httpConfig.eventStore,
         host: httpConfig.host,
         logger: this.#logger,
-        onClose: httpConfig.stateless ? undefined : async (session) => {
-          const sessionIndex = this.#sessions.indexOf(session);
-          if (sessionIndex !== -1) this.#sessions.splice(sessionIndex, 1);
-          this.emit("disconnect", {
-            session: session as FastMCPSession<FastMCPSessionAuth>,
-          });
-        },
-        onConnect: httpConfig.stateless ? undefined : async (session) => {
-          this.#sessions.push(session);
-          this.#logger.info(`[FastMCP info] HTTP Stream session established`);
-          this.emit("connect", {
-            session: session as FastMCPSession<FastMCPSessionAuth>,
-          });
-        },
+        onClose: httpConfig.stateless
+          ? undefined
+          : async (session) => {
+              const sessionIndex = this.#sessions.indexOf(session);
+              if (sessionIndex !== -1) this.#sessions.splice(sessionIndex, 1);
+              this.emit("disconnect", {
+                session: session as FastMCPSession<FastMCPSessionAuth>,
+              });
+            },
+        onConnect: httpConfig.stateless
+          ? undefined
+          : async (session) => {
+              this.#sessions.push(session);
+              this.#logger.info(
+                `[FastMCP info] HTTP Stream session established`,
+              );
+              this.emit("connect", {
+                session: session as FastMCPSession<FastMCPSessionAuth>,
+              });
+            },
         onUnhandledRequest: async (req, res) => {
           await this.#handleUnhandledRequest(
             req,
@@ -1060,25 +1098,25 @@ export class FastMCP<
     // Try health endpoint handler
     const healthHandled = await handleHealthEndpoint(req, res, {
       healthConfig: this.#options.health,
-      logger: this.#logger,
       host,
+      logger: this.#logger,
     });
     if (healthHandled) return;
 
     // Try readiness endpoint handler
     const readinessHandled = await handleReadinessEndpoint(req, res, {
-      sessions: this.#sessions,
+      host,
       isStateless,
       logger: this.#logger,
-      host,
+      sessions: this.#sessions,
     });
     if (readinessHandled) return;
 
     // Try OAuth endpoints handler
     const oauthHandled = await handleOAuthEndpoints(req, res, {
-      oauthConfig: this.#options.oauth,
-      logger: this.#logger,
       host,
+      logger: this.#logger,
+      oauthConfig: this.#options.oauth,
     });
     if (oauthHandled) return;
 
@@ -1196,7 +1234,6 @@ export type {
   PromptArgument,
   Resource,
   ResourceContent,
-
   ResourceResult,
   ResourceTemplate,
   ResourceTemplateArgument,

@@ -1,7 +1,28 @@
 // Forward declarations
 export type FastMCPSessionAuth = Record<string, unknown> | undefined;
 
-export type Root = any; // From MCP SDK
+export type InputResourceTemplate<
+  T extends FastMCPSessionAuth,
+  Arguments extends
+    InputResourceTemplateArgument<T>[] = InputResourceTemplateArgument<T>[],
+> = {
+  arguments: Arguments;
+  description?: string;
+  load: (
+    args: ResourceTemplateArgumentsToObject<Arguments>,
+    auth?: T,
+  ) => Promise<ResourceResult | ResourceResult[]>;
+  mimeType?: string;
+  name: string;
+  uriTemplate: string;
+};
+
+export type InputResourceTemplateArgument<T extends FastMCPSessionAuth> = {
+  complete?: (value: string, auth?: T) => Promise<any>; // Completion type
+  description?: string;
+  name: string;
+  required?: boolean;
+};
 
 export type Resource<T extends FastMCPSessionAuth> = {
   complete?: (name: string, value: string, auth?: T) => Promise<any>; // Completion type
@@ -9,6 +30,16 @@ export type Resource<T extends FastMCPSessionAuth> = {
   load: (auth?: T) => Promise<ResourceResult | ResourceResult[]>;
   mimeType?: string;
   name: string;
+  uri: string;
+};
+
+// From MCP SDK types
+export type ResourceLink = {
+  description?: string;
+  mimeType?: string;
+  name: string;
+  title?: string;
+  type: "resource_link";
   uri: string;
 };
 
@@ -52,35 +83,4 @@ export type ResourceTemplateArgumentsToObject<T extends { name: string }[]> = {
   [K in T[number]["name"]]: string;
 };
 
-export type InputResourceTemplate<
-  T extends FastMCPSessionAuth,
-  Arguments extends
-    InputResourceTemplateArgument<T>[] = InputResourceTemplateArgument<T>[],
-> = {
-  arguments: Arguments;
-  description?: string;
-  load: (
-    args: ResourceTemplateArgumentsToObject<Arguments>,
-    auth?: T,
-  ) => Promise<ResourceResult | ResourceResult[]>;
-  mimeType?: string;
-  name: string;
-  uriTemplate: string;
-};
-
-export type InputResourceTemplateArgument<T extends FastMCPSessionAuth> = {
-  complete?: (value: string, auth?: T) => Promise<any>; // Completion type
-  description?: string;
-  name: string;
-  required?: boolean;
-};
-
-// From MCP SDK types
-export type ResourceLink = {
-  description?: string;
-  mimeType?: string;
-  name: string;
-  title?: string;
-  type: "resource_link";
-  uri: string;
-};
+export type Root = any; // From MCP SDK

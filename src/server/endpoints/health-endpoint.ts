@@ -1,17 +1,18 @@
 import http from "http";
+
 import { Logger } from "../../types/logger.js";
 
 export interface HealthConfig {
   enabled?: boolean;
+  message?: string;
   path?: string;
   status?: number;
-  message?: string;
 }
 
 export interface HealthEndpointConfig {
   healthConfig?: HealthConfig;
-  logger: Logger;
   host: string;
+  logger: Logger;
 }
 
 /**
@@ -20,11 +21,12 @@ export interface HealthEndpointConfig {
 export async function handleHealthEndpoint(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  config: HealthEndpointConfig
+  config: HealthEndpointConfig,
 ): Promise<boolean> {
-  const { healthConfig = {}, logger, host } = config;
+  const { healthConfig = {}, host, logger } = config;
 
-  const enabled = healthConfig.enabled === undefined ? true : healthConfig.enabled;
+  const enabled =
+    healthConfig.enabled === undefined ? true : healthConfig.enabled;
 
   if (!enabled) {
     return false;

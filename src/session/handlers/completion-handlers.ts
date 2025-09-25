@@ -1,14 +1,35 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CompleteRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { Prompt, Tool, ResourceTemplate, FastMCPSessionAuth } from "../../types/index.js";
-import { UnexpectedStateError } from "../../errors/index.js";
+
+import {
+  FastMCPSessionAuth,
+  Prompt,
+  ResourceTemplate,
+  Tool,
+} from "../../types/index.js";
+
+// Error class for completion handlers
+export class UnexpectedStateError extends Error {
+  public extras?: any;
+
+  public constructor(message: string, extras?: any) {
+    super(message);
+    this.name = new.target.name;
+    this.extras = extras;
+  }
+}
 
 // Completion schema validation
 const CompletionZodSchema = z.object({
   hasMore: z.optional(z.boolean()),
   total: z.optional(z.number().int()),
-  values: z.array(z.string()).max(100),
+  values: z.array(
+    z.object({
+      description: z.optional(z.string()),
+      value: z.string(),
+    }),
+  ),
 });
 
 export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
@@ -16,7 +37,7 @@ export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
   prompts: Prompt<T>[],
   _tools: Tool<T>[],
   resourceTemplates?: ResourceTemplate<T>[],
-  auth?: T
+  auth?: T,
 ) {
   server.setRequestHandler(CompleteRequestSchema, async (request) => {
     if (request.params.ref.type === "ref/prompt") {
@@ -65,12 +86,9 @@ export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
       }
 
       if (!resource.complete) {
-        throw new UnexpectedStateError(
-          "Resource does not support completion",
-          {
-            request,
-          },
-        );
+        throw new UnexpectedStateError("Resource does not support completion", {
+          request,
+        });
       }
 
       const completion = CompletionZodSchema.parse(

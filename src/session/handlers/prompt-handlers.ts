@@ -5,12 +5,13 @@ import {
   ListPromptsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import { Prompt, FastMCPSessionAuth } from "../../types/index.js";
+
+import { FastMCPSessionAuth, Prompt } from "../../types/index.js";
 
 export function setupPromptHandlers<T extends FastMCPSessionAuth>(
   server: Server,
   prompts: Prompt<T>[],
-  auth?: T
+  auth?: T,
 ) {
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {

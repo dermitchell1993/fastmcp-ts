@@ -1,19 +1,10 @@
 /**
  * FastMCP Content Helper Functions
- * 
+ *
  * Utilities for processing image and audio content from various sources.
  */
 
 import { readFile } from "fs/promises";
-
-/**
- * Image content type definition
- */
-export type ImageContent = {
-  data: string;
-  mimeType: string;
-  type: "image";
-};
 
 /**
  * Audio content type definition
@@ -22,6 +13,15 @@ export type AudioContent = {
   data: string;
   mimeType: string;
   type: "audio";
+};
+
+/**
+ * Image content type definition
+ */
+export type ImageContent = {
+  data: string;
+  mimeType: string;
+  type: "image";
 };
 
 /**

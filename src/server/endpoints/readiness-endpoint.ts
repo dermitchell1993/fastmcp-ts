@@ -1,22 +1,23 @@
 import http from "http";
+
 import { Logger } from "../../types/logger.js";
 
-export interface ReadinessSession {
-  isReady: boolean;
-}
-
 export interface ReadinessEndpointConfig<T extends ReadinessSession> {
-  sessions: T[];
+  host: string;
   isStateless: boolean;
   logger: Logger;
-  host: string;
+  sessions: T[];
 }
 
 export interface ReadinessResponse {
+  mode?: string;
   ready: number;
   status: string;
   total: number;
-  mode?: string;
+}
+
+export interface ReadinessSession {
+  isReady: boolean;
 }
 
 /**
@@ -25,9 +26,9 @@ export interface ReadinessResponse {
 export async function handleReadinessEndpoint<T extends ReadinessSession>(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  config: ReadinessEndpointConfig<T>
+  config: ReadinessEndpointConfig<T>,
 ): Promise<boolean> {
-  const { sessions, isStateless, logger, host } = config;
+  const { host, isStateless, logger, sessions } = config;
 
   const url = new URL(req.url || "", `http://${host}`);
 

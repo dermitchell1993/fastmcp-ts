@@ -1,7 +1,8 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import http from "http";
-import { Logger } from "../../types/logger.js";
+
 import { FastMCPSessionAuth } from "../../types/auth.js";
+import { Logger } from "../../types/logger.js";
 
 export interface StdioTransportConfig<T extends FastMCPSessionAuth> {
   authenticate?: (request: http.IncomingMessage) => Promise<T>;
@@ -9,15 +10,15 @@ export interface StdioTransportConfig<T extends FastMCPSessionAuth> {
 }
 
 export interface StdioTransportResult<T extends FastMCPSessionAuth> {
-  transport: StdioServerTransport;
   auth: T | undefined;
+  transport: StdioServerTransport;
 }
 
 /**
  * Creates and configures a stdio transport for FastMCP
  */
 export async function createStdioTransport<T extends FastMCPSessionAuth>(
-  config: StdioTransportConfig<T>
+  config: StdioTransportConfig<T>,
 ): Promise<StdioTransportResult<T>> {
   const transport = new StdioServerTransport();
 
@@ -40,7 +41,7 @@ export async function createStdioTransport<T extends FastMCPSessionAuth>(
   }
 
   return {
-    transport,
     auth,
+    transport,
   };
 }

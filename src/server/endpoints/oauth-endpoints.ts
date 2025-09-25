@@ -1,39 +1,17 @@
 import http from "http";
+
 import { Logger } from "../../types/logger.js";
 
 export interface OAuthConfig {
-  enabled?: boolean;
   authorizationServer?: Record<string, unknown>;
+  enabled?: boolean;
   protectedResource?: Record<string, unknown>;
 }
 
 export interface OAuthEndpointConfig {
-  oauthConfig?: OAuthConfig;
-  logger: Logger;
   host: string;
-}
-
-/**
- * Converts camelCase to snake_case for OAuth endpoint responses
- */
-function camelToSnakeCase(str: string): string {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-}
-
-/**
- * Converts an object with camelCase keys to snake_case keys
- */
-function convertObjectToSnakeCase(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    const snakeKey = camelToSnakeCase(key);
-    result[snakeKey] = value;
-  }
-
-  return result;
+  logger: Logger;
+  oauthConfig?: OAuthConfig;
 }
 
 /**
@@ -42,9 +20,9 @@ function convertObjectToSnakeCase(
 export async function handleOAuthEndpoints(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  config: OAuthEndpointConfig
+  config: OAuthEndpointConfig,
 ): Promise<boolean> {
-  const { oauthConfig, logger, host } = config;
+  const { host, logger, oauthConfig } = config;
 
   if (!oauthConfig?.enabled || req.method !== "GET") {
     return false;
@@ -74,9 +52,7 @@ export async function handleOAuthEndpoints(
       url.pathname === "/.well-known/oauth-protected-resource" &&
       oauthConfig.protectedResource
     ) {
-      const metadata = convertObjectToSnakeCase(
-        oauthConfig.protectedResource,
-      );
+      const metadata = convertObjectToSnakeCase(oauthConfig.protectedResource);
       res
         .writeHead(200, {
           "Content-Type": "application/json",
@@ -89,4 +65,27 @@ export async function handleOAuthEndpoints(
   }
 
   return false;
+}
+
+/**
+ * Converts camelCase to snake_case for OAuth endpoint responses
+ */
+function camelToSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * Converts an object with camelCase keys to snake_case keys
+ */
+function convertObjectToSnakeCase(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = camelToSnakeCase(key);
+    result[snakeKey] = value;
+  }
+
+  return result;
 }

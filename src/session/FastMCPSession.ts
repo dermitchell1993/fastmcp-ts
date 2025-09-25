@@ -2,42 +2,37 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   ClientCapabilities,
-  CreateMessageRequestSchema,
   ErrorCode,
   McpError,
-  RequestOptions,
   Root,
   ServerCapabilities,
 } from "@modelcontextprotocol/sdk/types.js";
 import { EventEmitter } from "events";
 import { StrictEventEmitter } from "strict-event-emitter-types";
 import { setTimeout as delay } from "timers/promises";
-import { z } from "zod";
 
 import {
-  Context,
-  Progress,
-  Tool,
-  Resource,
-  Prompt,
-  LoggingLevel,
   Content,
   ContentResult,
-  FastMCPSessionEvents,
+  Context,
   FastMCPSessionAuth,
-  ResourceTemplate,
+  FastMCPSessionEvents,
   InputResourceTemplate,
-  SamplingResponse,
+  LoggingLevel,
+  Progress,
+  Prompt,
+  Resource,
+  ResourceTemplate,
+  Tool,
 } from "../types/index.js";
 import { Logger } from "../types/logger.js";
-
+import { setupCompleteHandlers } from "./handlers/completion-handlers.js";
+import { setupPromptHandlers } from "./handlers/prompt-handlers.js";
+import { setupResourceHandlers } from "./handlers/resource-handlers.js";
+import { setupToolHandlers } from "./handlers/tool-handlers.js";
 import { setupErrorHandling } from "./setup/error-setup.js";
 import { setupLoggingHandlers } from "./setup/logging-setup.js";
 import { setupRootsHandlers } from "./setup/roots-setup.js";
-import { setupCompleteHandlers } from "./handlers/completion-handlers.js";
-import { setupPromptHandlers } from "./handlers/prompt-handlers.js";
-import { setupResourceHandlers, setupResourceTemplateHandlers } from "./handlers/resource-handlers.js";
-import { setupToolHandlers } from "./handlers/tool-handlers.js";
 
 // Event emitter setup
 const FastMCPSessionEventEmitterBase: {
@@ -74,7 +69,7 @@ export class FastMCPSession<
   #pingConfig?: {
     enabled: boolean;
     interval: number;
-    logLevel: "debug" | "warning" | "none";
+    logLevel: "debug" | "none" | "warning";
   };
 
   #pingInterval: null | ReturnType<typeof setInterval> = null;
@@ -94,7 +89,6 @@ export class FastMCPSession<
       context: Context<T>,
       progress?: Progress,
     ) => Promise<ContentResult>;
-    formatInvalidParamsErrorMessage?: (issues: any[]) => string;
   };
 
   constructor({
@@ -119,7 +113,7 @@ export class FastMCPSession<
     ping?: {
       enabled: boolean;
       interval: number;
-      logLevel: "debug" | "warning" | "none";
+      logLevel: "debug" | "none" | "warning";
     };
     prompts: Prompt<T>[];
     resources: Resource<T>[];
@@ -135,7 +129,6 @@ export class FastMCPSession<
         context: Context<T>,
         progress?: Progress,
       ) => Promise<ContentResult>;
-      formatInvalidParamsErrorMessage?: (issues: any[]) => string;
     };
     version: string;
   }) {
@@ -177,28 +170,28 @@ export class FastMCPSession<
       this.#loggingLevel = level;
     });
     setupRootsHandlers(
-      this.#server, 
-      (newRoots: Root[]) => { this.#roots = newRoots; },
-      this.#rootsConfig, 
-      this.#logger, 
-      (event: string, data: any) => this.emit(event as any, data)
+      this.#server,
+      this.#roots,
+      this.#rootsConfig,
+      this.#logger,
+      (event: string, data: any) => this.emit(event as any, data),
     );
     setupCompleteHandlers(
-      this.#server, 
-      this.#prompts, 
-      this.#tools, 
-      this.#resourceTemplates, 
-      this.#auth
+      this.#server,
+      this.#prompts,
+      this.#tools,
+      this.#resourceTemplates,
+      this.#auth,
     );
 
     if (tools.length) {
       setupToolHandlers(
-        this.#server, 
-        tools, 
-        this.#logger, 
-        this.#utils, 
-        this.#auth, 
-        this.#needsEventLoopFlush
+        this.#server,
+        tools,
+        this.#logger,
+        this.#utils,
+        this.#auth,
+        this.#needsEventLoopFlush,
       );
     }
 
@@ -207,14 +200,19 @@ export class FastMCPSession<
         this.addResource(resource);
       }
 
-      setupResourceHandlers(this.#server, resources, this.#resourceTemplates, this.#auth);
+      setupResourceHandlers(
+        this.#server,
+        resources,
+        this.#resourceTemplates,
+        this.#auth,
+      );
 
       if (resourcesTemplates.length) {
         for (const resourceTemplate of resourcesTemplates) {
           this.addResourceTemplate(resourceTemplate);
         }
 
-        setupResourceTemplateHandlers(this.#server, this.#resourceTemplates);
+        // setupResourceTemplateHandlers(this.#server, resourcesTemplates);
       }
     }
 
@@ -235,13 +233,6 @@ export class FastMCPSession<
     } catch (error) {
       this.#logger.error("[FastMCP error]", "could not close server", error);
     }
-  }
-
-  public async requestSampling(
-    message: z.infer<typeof CreateMessageRequestSchema>["params"],
-    options?: RequestOptions,
-  ): Promise<SamplingResponse> {
-    return this.#server.createMessage(message, options);
   }
 
   public async connect(transport: Transport) {
@@ -352,87 +343,10 @@ export class FastMCPSession<
     });
   }
 
-  private addPrompt(inputPrompt: Prompt<T>) {
-    const completers: Record<string, (value: string, auth?: T) => Promise<any>> = {};
-    const enums: Record<string, string[]> = {};
-    const fuseInstances: Record<string, any> = {};
-
-    for (const argument of inputPrompt.arguments ?? []) {
-      if (argument.complete) {
-        completers[argument.name] = argument.complete;
-      }
-
-      if (argument.enum) {
-        enums[argument.name] = argument.enum;
-        // Note: Fuse is not imported yet, will need to add import
-        // fuseInstances[argument.name] = new Fuse(argument.enum, {
-        //   includeScore: true,
-        //   threshold: 0.3,
-        // });
-      }
-    }
-
-    const prompt = {
-      ...inputPrompt,
-      complete: async (name: string, value: string, auth?: T) => {
-        if (completers[name]) {
-          return await completers[name](value, auth);
-        }
-
-        if (enums[name]) {
-          // Simple string matching for now, can add Fuse later
-          const matches = enums[name].filter(item => 
-            item.toLowerCase().includes(value.toLowerCase())
-          );
-          return {
-            total: matches.length,
-            values: matches,
-          };
-        }
-
-        return {
-          values: [],
-        };
-      },
-    };
-
-    this.#prompts.push(prompt);
-  }
-
-  private addResource(resource: Resource<T>) {
-    this.#resources.push(resource);
-  }
-
-  private addResourceTemplate(inputResourceTemplate: InputResourceTemplate<T>) {
-    const completers: Record<string, (value: string, auth?: T) => Promise<any>> = {};
-
-    for (const argument of inputResourceTemplate.arguments ?? []) {
-      if (argument.complete) {
-        completers[argument.name] = argument.complete;
-      }
-    }
-
-    const resourceTemplate: ResourceTemplate<T> = {
-      ...inputResourceTemplate,
-      uriTemplate: inputResourceTemplate.uriTemplate,
-      complete: async (name: string, value: string, auth?: T) => {
-        if (completers[name]) {
-          return await completers[name](value, auth);
-        }
-
-        return {
-          values: [],
-        };
-      },
-    };
-
-    this.#resourceTemplates.push(resourceTemplate);
-  }
-
   #getPingConfig(_transport: Transport): {
     enabled: boolean;
     interval: number;
-    logLevel: "debug" | "warning" | "none";
+    logLevel: "debug" | "none" | "warning";
   } {
     if (!this.#pingConfig) {
       return {
@@ -443,5 +357,22 @@ export class FastMCPSession<
     }
 
     return this.#pingConfig;
+  }
+
+  private addPrompt(prompt: Prompt<T>) {
+    this.#prompts.push(prompt);
+  }
+
+  private addResource(resource: Resource<T>) {
+    this.#resources.push(resource);
+  }
+
+  private addResourceTemplate(resourceTemplate: InputResourceTemplate<T>) {
+    const template: ResourceTemplate<T> = {
+      ...resourceTemplate,
+      uriTemplate: resourceTemplate.uriTemplate,
+    };
+
+    this.#resourceTemplates.push(template);
   }
 }

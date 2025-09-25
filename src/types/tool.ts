@@ -1,7 +1,36 @@
+export type Content = any;
+export type Context<_T extends FastMCPSessionAuth> = any;
+
+// Forward declarations for dependencies
+export type FastMCPSessionAuth = Record<string, unknown> | undefined;
+
 // Forward declarations - will be resolved when full imports are available
 export type StandardSchemaV1 = any;
-export type ToolParameters = StandardSchemaV1;
+export type Tool<
+   
+  T extends FastMCPSessionAuth,
+  Params extends ToolParameters = ToolParameters,
+> = {
+  annotations?: {
+    /**
+     * When true, the tool leverages incremental content streaming
+     * Return void for tools that handle all their output via streaming
+     */
+    streamingHint?: boolean;
+  } & ToolAnnotations;
+  canAccess?: (auth: T) => boolean;
+  description?: string;
 
+  execute: (
+    args: any, // StandardSchemaV1.InferOutput<Params> - will be resolved when imports available
+    context: Context<T>,
+  ) => Promise<
+    { content: Content[]; isError?: boolean } | Content | string | void
+  >;
+  name: string;
+  parameters?: Params;
+  timeoutMs?: number;
+};
 export type ToolAnnotations = {
   /**
    * If true, the tool may perform destructive updates
@@ -35,33 +64,4 @@ export type ToolAnnotations = {
   title?: string;
 };
 
-// Forward declarations for dependencies
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
-export type Context<_T extends FastMCPSessionAuth> = any;
-export type Content = any;
-
-export type Tool<
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  T extends FastMCPSessionAuth,
-  Params extends ToolParameters = ToolParameters,
-> = {
-  annotations?: {
-    /**
-     * When true, the tool leverages incremental content streaming
-     * Return void for tools that handle all their output via streaming
-     */
-    streamingHint?: boolean;
-  } & ToolAnnotations;
-  canAccess?: (auth: T) => boolean;
-  description?: string;
-
-  execute: (
-    args: any, // StandardSchemaV1.InferOutput<Params> - will be resolved when imports available
-    context: Context<T>,
-  ) => Promise<
-    Content | { content: Content[]; isError?: boolean } | string | void
-  >;
-  name: string;
-  parameters?: Params;
-  timeoutMs?: number;
-};
+export type ToolParameters = StandardSchemaV1;

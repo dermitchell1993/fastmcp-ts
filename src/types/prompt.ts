@@ -1,10 +1,16 @@
-// Forward declarations
-export type FastMCPSessionAuth = Record<string, unknown> | undefined;
-
 export type ArgumentValueCompleter<T extends FastMCPSessionAuth> = (
   value: string,
   auth?: T,
 ) => Promise<any>; // Completion type
+
+export type Completion = {
+  hasMore?: boolean;
+  total?: number;
+  values: string[];
+};
+
+// Forward declarations
+export type FastMCPSessionAuth = Record<string, unknown> | undefined;
 
 export type InputPrompt<
   T extends FastMCPSessionAuth = FastMCPSessionAuth,
@@ -60,9 +66,3 @@ export type PromptArgumentsToObject<
 };
 
 export type PromptResult = any; // Pick<GetPromptResult, "messages"> | string - will be resolved with MCP types
-
-export type Completion = {
-  hasMore?: boolean;
-  total?: number;
-  values: string[];
-};

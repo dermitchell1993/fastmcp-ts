@@ -1,18 +1,25 @@
-export type TextContent = {
-  text: string;
-  type: "text";
+export type AudioContent = {
+  data: string;
+  mimeType: string;
+  type: "audio";
+};
+
+export type Content =
+  | AudioContent
+  | ImageContent
+  | ResourceContent
+  | ResourceLink
+  | TextContent;
+
+export type ContentResult = {
+  content: Content[];
+  isError?: boolean;
 };
 
 export type ImageContent = {
   data: string;
   mimeType: string;
   type: "image";
-};
-
-export type AudioContent = {
-  data: string;
-  mimeType: string;
-  type: "audio";
 };
 
 export type ResourceContent = {
@@ -33,14 +40,7 @@ export type ResourceLink = {
   type: "resource_link";
 };
 
-export type Content =
-  | AudioContent
-  | ImageContent
-  | ResourceContent
-  | ResourceLink
-  | TextContent;
-
-export type ContentResult = {
-  content: Content[];
-  isError?: boolean;
+export type TextContent = {
+  text: string;
+  type: "text";
 };
