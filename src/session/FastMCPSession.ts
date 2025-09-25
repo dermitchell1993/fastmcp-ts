@@ -14,16 +14,12 @@ import { setTimeout as delay } from "timers/promises";
 import {
   Context,
   Progress,
-  SerializableValue,
-  SamplingResponse,
   Tool,
   Resource,
   Prompt,
-  Completion,
   LoggingLevel,
   Content,
   ContentResult,
-  ToolParameters,
   FastMCPSessionEvents,
   FastMCPSessionAuth,
   ResourceTemplate,
@@ -179,7 +175,7 @@ export class FastMCPSession<
       this.#roots, 
       this.#rootsConfig, 
       this.#logger, 
-      (event: string, data: any) => this.emit(event, data)
+      (event: string, data: any) => this.emit(event as any, data)
     );
     setupCompleteHandlers(
       this.#server, 
@@ -316,7 +312,7 @@ export class FastMCPSession<
     } catch (error) {
       this.#connectionState = "error";
 
-      this.emit("error", error);
+      this.emit("error", { error: error as Error });
 
       throw error;
     }
@@ -333,9 +329,9 @@ export class FastMCPSession<
         resolve();
       };
 
-      const onError = (error: Error) => {
+      const onError = (event: { error: Error }) => {
         this.off("ready", onReady);
-        reject(error);
+        reject(event.error);
       };
 
       this.once("ready", onReady);
@@ -360,7 +356,7 @@ export class FastMCPSession<
     this.#resourceTemplates.push(template);
   }
 
-  #getPingConfig(transport: Transport): {
+  #getPingConfig(_transport: Transport): {
     enabled: boolean;
     interval: number;
     logLevel: "debug" | "warning" | "none";

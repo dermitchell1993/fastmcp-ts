@@ -3,7 +3,7 @@ export type SSEServer = {
 };
 
 // Forward declaration for FastMCPSession - will be resolved when session types are extracted
-export type FastMCPSession<T extends FastMCPSessionAuth> = any;
+export type FastMCPSession<_T extends FastMCPSessionAuth> = any;
 
 export type FastMCPEvents<T extends FastMCPSessionAuth> = {
   connect: (event: { session: FastMCPSession<T> }) => void;

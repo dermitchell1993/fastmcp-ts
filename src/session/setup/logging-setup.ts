@@ -4,7 +4,7 @@ import { LoggingLevel } from "../../types/index.js";
 
 export function setupLoggingHandlers(
   server: Server,
-  currentLevel: LoggingLevel,
+  _currentLevel: LoggingLevel,
   setLevel: (level: LoggingLevel) => void
 ) {
   server.setRequestHandler(SetLevelRequestSchema, (request) => {

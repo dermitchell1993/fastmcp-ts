@@ -29,7 +29,7 @@ const CompletionZodSchema = z.object({
 export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
   server: Server,
   prompts: Prompt<T>[],
-  tools: Tool<T>[],
+  _tools: Tool<T>[],
   resourceTemplates?: ResourceTemplate<T>[],
   auth?: T
 ) {

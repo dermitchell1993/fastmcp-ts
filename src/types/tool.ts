@@ -37,7 +37,7 @@ export type ToolAnnotations = {
 
 // Forward declarations for dependencies
 export type FastMCPSessionAuth = Record<string, unknown> | undefined;
-export type Context<T extends FastMCPSessionAuth> = any;
+export type Context<_T extends FastMCPSessionAuth> = any;
 export type Content = any;
 
 export type Tool<
