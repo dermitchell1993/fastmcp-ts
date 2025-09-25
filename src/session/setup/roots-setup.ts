@@ -9,7 +9,7 @@ import { Logger } from "../../types/logger.js";
 
 export function setupRootsHandlers(
   server: Server,
-  roots: Root[],
+  updateRoots: (newRoots: Root[]) => void,
   rootsConfig?: { listChanged?: boolean },
   logger?: Logger,
   emit?: (event: string, data: any) => void
@@ -29,8 +29,8 @@ export function setupRootsHandlers(
         server
           .listRoots()
           .then((rootsResult) => {
-            // Update the roots array in place
-            roots.splice(0, roots.length, ...rootsResult.roots);
+            // Update the roots using the callback
+            updateRoots(rootsResult.roots);
 
             emit?.("rootsChanged", {
               roots: rootsResult.roots,

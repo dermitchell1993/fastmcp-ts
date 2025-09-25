@@ -176,7 +176,7 @@ export class FastMCPSession<
     });
     setupRootsHandlers(
       this.#server, 
-      this.#roots, 
+      (newRoots: Root[]) => { this.#roots = newRoots; },
       this.#rootsConfig, 
       this.#logger, 
       (event: string, data: any) => this.emit(event as any, data)
