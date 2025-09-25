@@ -25,7 +25,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { EventEmitter } from "events";
-import { readFile } from "fs/promises";
 import Fuse from "fuse.js";
 import http from "http";
 import { startHTTPServer } from "mcp-proxy";
@@ -39,11 +38,33 @@ import { z } from "zod";
 import { FastMCPSession } from "./session/index.js";
 import { createStdioTransport, createHttpTransport } from "./server/transport/index.js";
 import { handleHealthEndpoint, handleReadinessEndpoint, handleOAuthEndpoints } from "./server/endpoints/index.js";
+import { imageContent, audioContent, ImageContent, AudioContent, TextContent } from "./utils/content-helpers.js";
 import { FastMCPError, UnexpectedStateError, UserError, Extra, Extras } from "./errors/index.js";
-import { imageContent, audioContent } from "./utils/content-helpers.js";
 
 import type { ResourceLink, Root, ImageContent, AudioContent, FastMCPSessionAuth, Authenticate, Logger, SSEServer, FastMCPEvents, FastMCPSessionEvents, Context, Progress, SerializableValue, TextContent, ToolParameters } from "./types/index.js";
 
+<<<<<<< HEAD
+=======
+export type SSEServer = {
+  close: () => Promise<void>;
+};
+
+type FastMCPEvents<T extends FastMCPSessionAuth> = {
+  connect: (event: { session: FastMCPSession<T> }) => void;
+  disconnect: (event: { session: FastMCPSession<T> }) => void;
+};
+
+type FastMCPSessionEvents = {
+  error: (event: { error: Error }) => void;
+  ready: () => void;
+  rootsChanged: (event: { roots: Root[] }) => void;
+};
+
+
+
+type ToolParameters = StandardSchemaV1;
+
+>>>>>>> origin/refactor/integration-utilities
 
 const TextContentZodSchema = z
   .object({
@@ -53,7 +74,7 @@ const TextContentZodSchema = z
     text: z.string(),
     type: z.literal("text"),
   })
-  .strict() satisfies z.ZodType<TextContent>;
+  .strict() ;
 
 
 const ImageContentZodSchema = z
@@ -68,7 +89,7 @@ const ImageContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("image"),
   })
-  .strict() satisfies z.ZodType<ImageContent>;
+  .strict() ;
 
 
 const AudioContentZodSchema = z
@@ -80,7 +101,7 @@ const AudioContentZodSchema = z
     mimeType: z.string(),
     type: z.literal("audio"),
   })
-  .strict() satisfies z.ZodType<AudioContent>;
+  .strict() ;
 
 type ResourceContent = {
   resource: {
@@ -96,7 +117,7 @@ const ResourceContentZodSchema = z
   .object({
     resource: z.object({
       blob: z.string().optional(),
-      mimeType: z.string().optional(),
+      mimeType: z.string(),
       text: z.string().optional(),
       uri: z.string(),
     }),
@@ -106,7 +127,7 @@ const ResourceContentZodSchema = z
 
 const ResourceLinkZodSchema = z.object({
   description: z.string().optional(),
-  mimeType: z.string().optional(),
+  mimeType: z.string(),
   name: z.string(),
   title: z.string().optional(),
   type: z.literal("resource_link"),
