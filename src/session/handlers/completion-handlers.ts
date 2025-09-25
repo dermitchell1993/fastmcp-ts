@@ -1,7 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CompleteRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { Prompt, Tool, ResourceTemplate, FastMCPSessionAuth } from "../../types/index.js";
+import { Prompt, ResourceTemplate, FastMCPSessionAuth } from "../../types/index.js";
 
 // Error class for completion handlers
 export class UnexpectedStateError extends Error {
@@ -29,7 +29,7 @@ const CompletionZodSchema = z.object({
 export function setupCompleteHandlers<T extends FastMCPSessionAuth>(
   server: Server,
   prompts: Prompt<T>[],
-  tools: Tool<T>[],
+
   resourceTemplates?: ResourceTemplate<T>[],
   auth?: T
 ) {

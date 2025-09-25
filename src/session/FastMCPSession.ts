@@ -14,16 +14,15 @@ import { setTimeout as delay } from "timers/promises";
 import {
   Context,
   Progress,
-  SerializableValue,
-  SamplingResponse,
+
   Tool,
   Resource,
   Prompt,
-  Completion,
+
   LoggingLevel,
   Content,
   ContentResult,
-  ToolParameters,
+
   FastMCPSessionEvents,
   FastMCPSessionAuth,
   ResourceTemplate,
@@ -171,7 +170,7 @@ export class FastMCPSession<
     this.#utils = utils;
 
     setupErrorHandling(this.#server, this.#logger);
-    setupLoggingHandlers(this.#server, this.#loggingLevel, (level) => {
+    setupLoggingHandlers(this.#server, (level: any) => {
       this.#loggingLevel = level;
     });
     setupRootsHandlers(
@@ -184,7 +183,6 @@ export class FastMCPSession<
     setupCompleteHandlers(
       this.#server, 
       this.#prompts, 
-      this.#tools, 
       this.#resourceTemplates, 
       this.#auth
     );
@@ -289,7 +287,7 @@ export class FastMCPSession<
       }
 
       if (this.#clientCapabilities) {
-        const pingConfig = this.#getPingConfig(transport);
+        const pingConfig = this.#getPingConfig();
 
         if (pingConfig.enabled) {
           this.#pingInterval = setInterval(async () => {
@@ -360,7 +358,7 @@ export class FastMCPSession<
     this.#resourceTemplates.push(template);
   }
 
-  #getPingConfig(transport: Transport): {
+  #getPingConfig(): {
     enabled: boolean;
     interval: number;
     logLevel: "debug" | "warning" | "none";
