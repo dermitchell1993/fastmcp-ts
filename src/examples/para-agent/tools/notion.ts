@@ -5,6 +5,7 @@
 
 import { FastMCP } from "../../FastMCP.js";
 import { PARATask, PARAProject, PARAResource, PARAStage } from '../types/para.js';
+import { ValkeyCache } from '../cache/valkey.js';
 
 export interface NotionConfig {
   apiKey: string;
@@ -20,13 +21,27 @@ export interface NotionConfig {
 
 export class NotionTools {
   private config: NotionConfig;
+  private cache: ValkeyCache;
 
-  constructor(config: NotionConfig) {
+  constructor(config: NotionConfig, cache?: ValkeyCache) {
     this.config = config;
+    this.cache = cache || new ValkeyCache({
+      host: 'localhost',
+      port: 6379,
+      db: 0,
+      keyPrefix: 'para:notion:',
+      ttl: {
+        taskScores: 3600,
+        apiResponses: 300,
+        opportunities: 1800,
+        coherence: 900
+      },
+      enabled: false // Disabled by default if not provided
+    });
   }
 
   /**
-   * Query Notion database for items at a specific PARA stage
+   * Query Notion database for items at a specific PARA stage with caching
    */
   async queryStage(stage: PARAStage, filters?: any): Promise<any[]> {
     const databaseId = this.config.databaseIds[stage];
@@ -34,9 +49,22 @@ export class NotionTools {
       throw new Error(`No database configured for stage: ${stage}`);
     }
 
+    // Check cache first
+    const cacheKey = `stage:${stage}:${JSON.stringify(filters || {})}`;
+    const cachedResult = await this.cache.getCachedAPIResponse('notion', { stage, filters });
+
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     // This would make actual Notion API calls
     // For now, return mock data structure
-    return this.mockQueryDatabase(databaseId, stage, filters);
+    const result = this.mockQueryDatabase(databaseId, stage, filters);
+
+    // Cache the result
+    await this.cache.cacheAPIResponse('notion', { stage, filters }, result);
+
+    return result;
   }
 
   /**
@@ -327,4 +355,3 @@ export function registerNotionTools(server: FastMCP, notionTools: NotionTools) {
     }
   });
 }
-

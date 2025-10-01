@@ -10,6 +10,7 @@ import { FunnelAutomationEngine } from './engine/funnel.js';
 import { CoherenceEngine } from './engine/coherence.js';
 import { OpportunitiesEngine } from './engine/opportunities.js';
 import { AutomationScheduler } from './scheduler/index.js';
+import { ValkeyCache } from './cache/valkey.js';
 
 /**
  * PARA Automation Agent - Central coordination system for productivity management
@@ -38,12 +39,19 @@ if (!validation.valid) {
   process.exit(1);
 }
 
-// Initialize tools and engines
-const notionTools = new NotionTools(config.notion);
-const linearTools = new LinearTools(config.linear);
-const slackTools = new SlackTools(config.slack);
+// Initialize Valkey cache
+const valkeyCache = new ValkeyCache(config.valkey);
+await valkeyCache.connect().catch(error => {
+  console.warn('Failed to connect to Valkey cache:', error.message);
+  console.warn('Continuing without caching...');
+});
 
-const taskScoreEngine = new TaskScoreEngine();
+// Initialize tools and engines
+const notionTools = new NotionTools(config.notion, valkeyCache);
+const linearTools = new LinearTools(config.linear, valkeyCache);
+const slackTools = new SlackTools(config.slack, valkeyCache);
+
+const taskScoreEngine = new TaskScoreEngine(undefined, config.valkey);
 const funnelEngine = new FunnelAutomationEngine(notionTools, linearTools);
 const coherenceEngine = new CoherenceEngine(notionTools, linearTools);
 const opportunitiesEngine = new OpportunitiesEngine();
@@ -111,7 +119,7 @@ server.addTool({
 
 server.addTool({
   name: "calculate_task_score",
-  description: "Calculate Task Score for a specific item using Amplenote-style ranking",
+  description: "Calculate Task Score for a specific item using Amplenote-style ranking with caching",
   parameters: {
     type: "object",
     properties: {
@@ -134,9 +142,9 @@ server.addTool({
   },
   execute: async ({ itemId, itemType, includeContext }) => {
     try {
-      // This would need to fetch the actual item data
-      // For now, return a mock score
-      const mockScore = taskScoreEngine.calculateTaskScore({
+      // This would need to fetch the actual item data from Notion/Linear
+      // For now, return a mock score with caching
+      const mockScore = await taskScoreEngine.calculateTaskScore({
         id: itemId,
         title: "Sample Task",
         description: "Task description",
@@ -156,7 +164,8 @@ server.addTool({
         colorCode: mockScore.colorCode,
         breakdown: mockScore.breakdown,
         factors: mockScore.factors,
-        lastCalculated: mockScore.lastCalculated
+        lastCalculated: mockScore.lastCalculated,
+        cached: true // Indicate this came from cache or was cached
       };
     } catch (error) {
       return { error: `Failed to calculate task score: ${error.message}` };

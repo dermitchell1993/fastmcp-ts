@@ -7,6 +7,21 @@ import { LinearConfig } from '../tools/linear.js';
 import { SlackConfig } from '../tools/slack.js';
 import { SchedulerConfig } from '../scheduler/index.js';
 
+export interface ValkeyConfig {
+  host: string;
+  port: number;
+  password?: string;
+  db: number;
+  keyPrefix: string;
+  ttl: {
+    taskScores: number;      // Task score cache TTL in seconds
+    apiResponses: number;    // API response cache TTL
+    opportunities: number;   // Strategic opportunities cache TTL
+    coherence: number;       // Coherence check results TTL
+  };
+  enabled: boolean;
+}
+
 export interface PARAConfig {
   // Tool configurations
   notion: NotionConfig;
@@ -15,6 +30,9 @@ export interface PARAConfig {
 
   // Scheduler configuration
   scheduler: SchedulerConfig;
+
+  // Caching configuration
+  valkey: ValkeyConfig;
 
   // General settings
   timezone: string;
@@ -96,6 +114,20 @@ export class ConfigManager {
         enableOpportunitiesAnalysis: true,
         preferredSummaryHour: 9,
         timezone: process.env.TZ || 'UTC'
+      },
+      valkey: {
+        host: process.env.VALKEY_HOST || 'localhost',
+        port: parseInt(process.env.VALKEY_PORT || '6379'),
+        password: process.env.VALKEY_PASSWORD,
+        db: parseInt(process.env.VALKEY_DB || '0'),
+        keyPrefix: process.env.VALKEY_KEY_PREFIX || 'para:',
+        ttl: {
+          taskScores: parseInt(process.env.VALKEY_TTL_TASK_SCORES || '3600'), // 1 hour
+          apiResponses: parseInt(process.env.VALKEY_TTL_API_RESPONSES || '300'), // 5 minutes
+          opportunities: parseInt(process.env.VALKEY_TTL_OPPORTUNITIES || '1800'), // 30 minutes
+          coherence: parseInt(process.env.VALKEY_TTL_COHERENCE || '900') // 15 minutes
+        },
+        enabled: process.env.VALKEY_ENABLED !== 'false'
       },
       timezone: process.env.TZ || 'UTC',
       logLevel: (process.env.LOG_LEVEL as any) || 'info',
@@ -186,7 +218,7 @@ export class ConfigManager {
    * Get environment variables needed for this configuration
    */
   getRequiredEnvVars(): string[] {
-    return [
+    const required = [
       'NOTION_API_KEY',
       'NOTION_JOTS_DB',
       'NOTION_TASKS_DB',
@@ -195,17 +227,39 @@ export class ConfigManager {
       'NOTION_RESOURCES_DB',
       'NOTION_ARCHIVES_DB',
       'SLACK_BOT_TOKEN',
-      'SLACK_CHANNEL_ID',
-      'LINEAR_API_KEY', // Optional but recommended
-      'TZ' // Optional
+      'SLACK_CHANNEL_ID'
     ];
+
+    // Add Valkey vars if enabled
+    if (this.config.valkey.enabled) {
+      required.push(
+        'VALKEY_HOST',
+        'VALKEY_PORT'
+      );
+    }
+
+    // Optional vars
+    const optional = [
+      'LINEAR_API_KEY', // Optional but recommended
+      'TZ', // Optional
+      'VALKEY_PASSWORD', // Optional
+      'VALKEY_DB', // Optional
+      'VALKEY_KEY_PREFIX', // Optional
+      'VALKEY_TTL_TASK_SCORES', // Optional
+      'VALKEY_TTL_API_RESPONSES', // Optional
+      'VALKEY_TTL_OPPORTUNITIES', // Optional
+      'VALKEY_TTL_COHERENCE', // Optional
+      'VALKEY_ENABLED' // Optional
+    ];
+
+    return [...required, ...optional];
   }
 
   /**
    * Export configuration as environment variables
    */
   exportAsEnvVars(): Record<string, string> {
-    return {
+    const envVars: Record<string, string> = {
       NOTION_API_KEY: this.config.notion.apiKey,
       NOTION_JOTS_DB: this.config.notion.databaseIds.jots,
       NOTION_TASKS_DB: this.config.notion.databaseIds.tasks,
@@ -219,8 +273,23 @@ export class ConfigManager {
       LINEAR_API_KEY: this.config.linear.apiKey,
       LINEAR_TEAM_ID: this.config.linear.teamId || '',
       TZ: this.config.timezone,
-      LOG_LEVEL: this.config.logLevel
+      LOG_LEVEL: this.config.logLevel,
+      VALKEY_ENABLED: this.config.valkey.enabled.toString(),
+      VALKEY_HOST: this.config.valkey.host,
+      VALKEY_PORT: this.config.valkey.port.toString(),
+      VALKEY_DB: this.config.valkey.db.toString(),
+      VALKEY_KEY_PREFIX: this.config.valkey.keyPrefix,
+      VALKEY_TTL_TASK_SCORES: this.config.valkey.ttl.taskScores.toString(),
+      VALKEY_TTL_API_RESPONSES: this.config.valkey.ttl.apiResponses.toString(),
+      VALKEY_TTL_OPPORTUNITIES: this.config.valkey.ttl.opportunities.toString(),
+      VALKEY_TTL_COHERENCE: this.config.valkey.ttl.coherence.toString()
     };
+
+    // Add optional password if set
+    if (this.config.valkey.password) {
+      envVars.VALKEY_PASSWORD = this.config.valkey.password;
+    }
+
+    return envVars;
   }
 }
-

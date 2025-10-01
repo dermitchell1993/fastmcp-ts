@@ -14,6 +14,7 @@ The PARA Automation Agent automates your productivity funnel while maintaining d
 - **Strategic Opportunity Detection**: Identifies building blocks, bottlenecks, and delegation candidates
 - **Periodic Summaries**: Automated Slack notifications with productivity insights
 - **Database Coherence**: Automatic detection and fixing of broken links, orphaned items, and inconsistencies
+- **Valkey Caching**: High-performance Redis-compatible caching for API responses, task scores, and computed data
 
 ## Architecture
 
@@ -42,6 +43,26 @@ The PARA Automation Agent automates your productivity funnel while maintaining d
                     └─────────────────────┘
 ```
 
+## Caching with Valkey
+
+The PARA Agent uses Valkey (Redis-compatible) caching to improve performance and reduce API calls:
+
+- **Task Scores**: Cached for 1 hour to avoid recomputation
+- **API Responses**: Cached for 5 minutes to reduce external API calls
+- **Opportunities Analysis**: Cached for 30 minutes
+- **Coherence Checks**: Cached for 15 minutes
+
+### Benefits:
+- ⚡ **Faster Response Times**: Cached results served instantly
+- 📉 **Reduced API Load**: Fewer calls to Notion, Linear, and Slack APIs
+- 💰 **Cost Savings**: Lower API usage costs
+- 🔄 **Better Reliability**: Graceful degradation when APIs are unavailable
+
+### Cache Invalidation:
+- Automatic TTL-based expiration
+- Manual cache clearing via MCP tools
+- Context-aware cache keys prevent stale data
+
 ## Setup
 
 ### Prerequisites
@@ -50,6 +71,7 @@ The PARA Automation Agent automates your productivity funnel while maintaining d
 - Notion API access with database permissions
 - Slack bot token with messaging permissions
 - Linear API key (optional but recommended)
+- Valkey/Redis server (optional but recommended for performance)
 
 ### Environment Variables
 
@@ -73,6 +95,18 @@ LINEAR_TEAM_ID=your_team_id
 SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
 SLACK_CHANNEL_ID=C1234567890
 SLACK_USER_ID=U1234567890
+
+# Valkey Cache Configuration (Optional - improves performance)
+VALKEY_ENABLED=true
+VALKEY_HOST=localhost
+VALKEY_PORT=6379
+VALKEY_PASSWORD=your_password  # Optional
+VALKEY_DB=0
+VALKEY_KEY_PREFIX=para:
+VALKEY_TTL_TASK_SCORES=3600    # 1 hour
+VALKEY_TTL_API_RESPONSES=300   # 5 minutes
+VALKEY_TTL_OPPORTUNITIES=1800  # 30 minutes
+VALKEY_TTL_COHERENCE=900       # 15 minutes
 
 # General Configuration
 TZ=America/New_York
@@ -348,4 +382,3 @@ For issues and questions:
 - Reduce check intervals in scheduler config
 - Limit query sizes for large databases
 - Use pagination for API calls
-

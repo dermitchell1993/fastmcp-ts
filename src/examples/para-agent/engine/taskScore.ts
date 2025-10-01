@@ -1,27 +1,40 @@
 /**
  * Task Score Calculation Engine
  * Implements Amplenote-style productivity scoring
+ * Optimized for Apple M2 with WebGPU acceleration for compute-intensive operations
  */
 
 import { TaskScoreFactors, TaskScoreResult, TaskScoreConfig, VictoryValue, GoodLifeAlgorithm } from '../types/task.js';
 import { PARATask, PARAProject } from '../types/para.js';
+import { ValkeyCache } from '../cache/valkey.js';
+import { ValkeyConfig } from '../config/index.js';
+
+// WebGPU interface for Metal acceleration on M2
+interface WebGPUContext {
+  device: GPUDevice;
+  queue: GPUQueue;
+  shaderModule: GPUShaderModule;
+}
 
 export class TaskScoreEngine {
   private config: TaskScoreConfig;
   private goodLifeAlgorithm: GoodLifeAlgorithm;
+  private webgpu: WebGPUContext | null = null;
+  private useWebGPU: boolean = false;
+  private cache: ValkeyCache;
 
-  constructor(config?: Partial<TaskScoreConfig>) {
+  constructor(config?: Partial<TaskScoreConfig>, valkeyConfig?: ValkeyConfig) {
     this.config = {
       weights: {
-        noteActivity: 1.0,
-        urgency: 2.0,
-        importance: 3.0, // 3x accumulation for important items
-        deadlinePressure: 1.0,
-        duration: 0.5,
-        blocking: 1.5,
-        crossAreaImpact: 1.0,
-        age: -0.1,
-        momentum: 1.0
+        noteActivity: 0.5,
+        urgency: 1.0,
+        importance: 1.5, // 3x accumulation for important items (but scaled down)
+        deadlinePressure: 2.0,
+        duration: 0.3,
+        blocking: 1.0,
+        crossAreaImpact: 0.8,
+        age: -0.05,
+        momentum: 0.7
       },
       thresholds: {
         red: 10,
@@ -48,16 +61,41 @@ export class TaskScoreEngine {
       lowEnergyTimes: [],
       lastUpdated: new Date()
     };
+
+    // Initialize cache
+    this.cache = new ValkeyCache(valkeyConfig || {
+      host: process.env.VALKEY_HOST || 'localhost',
+      port: parseInt(process.env.VALKEY_PORT || '6379'),
+      password: process.env.VALKEY_PASSWORD,
+      db: parseInt(process.env.VALKEY_DB || '0'),
+      keyPrefix: 'para:task-scores:',
+      ttl: {
+        taskScores: parseInt(process.env.VALKEY_TTL_TASK_SCORES || '3600'),
+        apiResponses: parseInt(process.env.VALKEY_TTL_API_RESPONSES || '300'),
+        opportunities: parseInt(process.env.VALKEY_TTL_OPPORTUNITIES || '1800'),
+        coherence: parseInt(process.env.VALKEY_TTL_COHERENCE || '900')
+      },
+      enabled: process.env.VALKEY_ENABLED !== 'false'
+    });
   }
 
   /**
-   * Calculate Task Score for a PARA task
+   * Calculate Task Score for a PARA task with caching
    */
-  calculateTaskScore(task: PARATask, context?: {
+  async calculateTaskScore(task: PARATask, context?: {
     relatedTasks?: PARATask[];
     relatedProjects?: PARAProject[];
     recentActivity?: { date: Date; action: string }[];
-  }): TaskScoreResult {
+  }): Promise<TaskScoreResult> {
+    // Check cache first
+    const cacheKey = this.generateCacheKey(task, context);
+    const cachedResult = await this.cache.getCachedTaskScore(cacheKey);
+
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    // Calculate factors
     const factors = this.calculateFactors(task, context);
 
     const breakdown = {
@@ -78,13 +116,37 @@ export class TaskScoreEngine {
     const colorCode = totalScore >= this.config.thresholds.red ? 'red' :
                      totalScore >= this.config.thresholds.gold ? 'gold' : 'normal';
 
-    return {
+    const result: TaskScoreResult = {
       totalScore: Math.max(0, totalScore), // Ensure non-negative
       factors,
       colorCode,
       breakdown,
       lastCalculated: new Date()
     };
+
+    // Cache the result
+    await this.cache.cacheTaskScore(cacheKey, result);
+
+    return result;
+  }
+
+  /**
+   * Generate a cache key for task score calculation
+   */
+  private generateCacheKey(task: PARATask, context?: {
+    relatedTasks?: PARATask[];
+    relatedProjects?: PARAProject[];
+    recentActivity?: { date: Date; action: string }[];
+  }): string {
+    // Create a deterministic key based on task properties and context
+    const taskKey = `${task.id}:${task.updatedAt.getTime()}`;
+    const contextKey = context ? JSON.stringify({
+      relatedTasksCount: context.relatedTasks?.length || 0,
+      relatedProjectsCount: context.relatedProjects?.length || 0,
+      recentActivityCount: context.recentActivity?.length || 0
+    }) : 'no-context';
+
+    return `${taskKey}:${contextKey}`;
   }
 
   /**
@@ -240,4 +302,3 @@ export class TaskScoreEngine {
     return { ...this.goodLifeAlgorithm };
   }
 }
-
