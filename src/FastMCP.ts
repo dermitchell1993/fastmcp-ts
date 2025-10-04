@@ -37,8 +37,6 @@ import { toJsonSchema } from "xsschema";
 import { z } from "zod";
 
 import {
-  Extra,
-  Extras,
   FastMCPError,
   UnexpectedStateError,
   UserError,
@@ -59,10 +57,7 @@ import {
 import { FastMCPSession } from "./session/index.js";
 import {
   audioContent,
-  AudioContent,
   imageContent,
-  ImageContent,
-  TextContent,
 } from "./utils/content-helpers.js";
 
 // Parameter mapping functions to adapt between FastMCP and FastMCPSession interfaces
@@ -195,12 +190,10 @@ const ResourceContentZodSchema = z
   .strict() satisfies z.ZodType<ResourceContent>;
 
 const ResourceLinkZodSchema = z.object({
-  description: z.string().optional(),
-  mimeType: z.string(),
-  name: z.string(),
-  title: z.string().optional(),
+  resource: z.object({
+    uri: z.string(),
+  }),
   type: z.literal("resource_link"),
-  uri: z.string(),
 }) satisfies z.ZodType<ResourceLink>;
 
 type Content =

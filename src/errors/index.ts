@@ -8,7 +8,7 @@
  * Base error class for all FastMCP errors
  */
 export class FastMCPError extends Error {
-  constructor(message) {
+  constructor(message: string) {
     super(message);
     this.name = new.target.name;
   }
@@ -18,7 +18,9 @@ export class FastMCPError extends Error {
  * Error indicating an unexpected state in the application
  */
 export class UnexpectedStateError extends FastMCPError {
-  constructor(message, extras) {
+  extras?: unknown;
+
+  constructor(message: string, extras?: unknown) {
     super(message);
     this.name = new.target.name;
     this.extras = extras;
@@ -29,3 +31,4 @@ export class UnexpectedStateError extends FastMCPError {
  * An error that is meant to be surfaced to the user.
  */
 export class UserError extends UnexpectedStateError {}
+
