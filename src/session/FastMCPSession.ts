@@ -283,7 +283,8 @@ export class FastMCPSession<
       ) {
         try {
           const roots = await this.#server.listRoots();
-          this.#roots = roots?.roots || [];
+          // Use splice to update the array in place to maintain the reference
+          this.#roots.splice(0, this.#roots.length, ...(roots?.roots || []));
         } catch (e) {
           if (e instanceof McpError && e.code === ErrorCode.MethodNotFound) {
             this.#logger.debug(
