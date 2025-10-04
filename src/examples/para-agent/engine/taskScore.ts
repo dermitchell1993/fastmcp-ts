@@ -139,7 +139,7 @@ export class TaskScoreEngine {
     recentActivity?: { date: Date; action: string }[];
   }): string {
     // Create a deterministic key based on task properties and context
-    const taskKey = `${task.id}:${task.updatedAt.getTime()}`;
+    const taskKey = `${task.id}:${task.updatedAt?.getTime() || 0}`;
     const contextKey = context ? JSON.stringify({
       relatedTasksCount: context.relatedTasks?.length || 0,
       relatedProjectsCount: context.relatedProjects?.length || 0,
