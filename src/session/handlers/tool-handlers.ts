@@ -151,7 +151,7 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
 
       if (parsed.issues) {
         const friendlyErrors = utils?.formatInvalidParamsErrorMessage
-          ? utils.formatInvalidParamsErrorMessage(parsed.issues)
+          ? utils.formatInvalidParamsErrorMessage([...parsed.issues])
           : parsed.issues
               .map((issue: any) => {
                 const path = issue.path?.join(".") || "root";
@@ -263,9 +263,12 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
         }
       };
 
+      const clientVersion = server.getClientVersion();
       const executeToolPromise = tool.execute(args, {
         client: {
-          version: server.getClientVersion(),
+          version: typeof clientVersion === "string" 
+            ? clientVersion 
+            : clientVersion?.version ?? "unknown",
         },
         log,
         reportProgress,

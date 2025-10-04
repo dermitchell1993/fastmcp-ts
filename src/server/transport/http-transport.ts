@@ -1,4 +1,5 @@
 import { EventStore } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import http from "http";
 import { startHTTPServer } from "mcp-proxy";
 
@@ -6,9 +7,15 @@ import { FastMCPSessionAuth } from "../../types/auth.js";
 import { Logger } from "../../types/logger.js";
 import { SSEServer } from "../../types/server.js";
 
+// Define constraint for session types used with HTTP transport
+type ServerLike = {
+  close: Server["close"];
+  connect: Server["connect"];
+};
+
 export interface HttpTransportConfig<
   T extends FastMCPSessionAuth,
-  SessionType,
+  SessionType extends ServerLike,
 > {
   authenticate?: (request: http.IncomingMessage) => Promise<T>;
   createSession: (auth: T | undefined) => SessionType;
@@ -32,7 +39,7 @@ export interface HttpTransportConfig<
  */
 export async function createHttpTransport<
   T extends FastMCPSessionAuth,
-  SessionType,
+  SessionType extends ServerLike,
 >(config: HttpTransportConfig<T, SessionType>): Promise<SSEServer> {
   const {
     authenticate,

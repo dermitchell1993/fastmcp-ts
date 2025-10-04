@@ -4,7 +4,8 @@ import { execa } from "execa";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-await yargs(hideBin(process.argv))
+(async () => {
+  await yargs(hideBin(process.argv))
   .scriptName("fastmcp")
   .command(
     "dev <file>",
@@ -189,3 +190,4 @@ await yargs(hideBin(process.argv))
 
   .help()
   .parseAsync();
+})();

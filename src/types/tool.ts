@@ -1,6 +1,10 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { Content } from "./content.js";
 import type { Context, FastMCPSessionAuth } from "./session.js";
+
+// Re-export types used in other modules
+export type { StandardSchemaV1 };
+
 export type Tool<
    
   T extends FastMCPSessionAuth,

@@ -5,32 +5,7 @@
  */
 
 import { readFile } from "fs/promises";
-
-/**
- * Audio content type definition
- */
-export type AudioContent = {
-  data: string;
-  mimeType: string;
-  type: "audio";
-};
-
-/**
- * Image content type definition
- */
-export type ImageContent = {
-  data: string;
-  mimeType: string;
-  type: "image";
-};
-
-/**
- * Text content type definition
- */
-export type TextContent = {
-  text: string;
-  type: "text";
-};
+import type { AudioContent, ImageContent } from "../types/content.js";
 
 /**
  * Process image content from buffer, file path, or URL
