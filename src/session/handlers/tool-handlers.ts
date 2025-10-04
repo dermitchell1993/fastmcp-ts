@@ -23,19 +23,10 @@ import {
   Tool,
 } from "../../types/index.js";
 import { Logger } from "../../types/logger.js";
+import { UserError, UnexpectedStateError } from "../../errors/index.js";
 
-// Error classes for tool handlers
-export class UnexpectedStateError extends Error {
-  public extras?: any;
-
-  public constructor(message: string, extras?: any) {
-    super(message);
-    this.name = new.target.name;
-    this.extras = extras;
-  }
-}
-
-export class UserError extends UnexpectedStateError {}
+// Re-export for backwards compatibility
+export { UserError, UnexpectedStateError };
 
 // Content validation schemas
 const TextContentZodSchema = z
@@ -266,9 +257,7 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
       const clientVersion = server.getClientVersion();
       const executeToolPromise = tool.execute(args, {
         client: {
-          version: typeof clientVersion === "string" 
-            ? clientVersion 
-            : clientVersion?.version ?? "unknown",
+          version: clientVersion ?? { name: "unknown", version: "unknown" },
         },
         log,
         reportProgress,
@@ -325,11 +314,22 @@ export function setupToolHandlers<T extends FastMCPSessionAuth>(
       }
     } catch (error) {
       if (error instanceof UserError) {
-        return {
-          content: [{ text: error.message, type: "text" }],
+        // Add tool name prefix only if extras are present
+        const errorText = error.extras
+          ? `Tool '${request.params.name}' execution failed: ${error.message}`
+          : error.message;
+        
+        const result: any = {
+          content: [{ text: errorText, type: "text" }],
           isError: true,
-          ...(error.extras ? { structuredContent: error.extras } : {}),
         };
+        
+        // If extras are present, include them in structuredContent
+        if (error.extras) {
+          result.structuredContent = error.extras;
+        }
+        
+        return result;
       }
 
       const errorMessage =
