@@ -2,6 +2,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   ClientCapabilities,
+  CreateMessageRequest,
+  CreateMessageResult,
   ErrorCode,
   McpError,
   Root,
@@ -236,6 +238,12 @@ export class FastMCPSession<
     } catch (error) {
       this.#logger.error("[FastMCP error]", "could not close server", error);
     }
+  }
+
+  public async requestSampling(
+    params: CreateMessageRequest["params"],
+  ): Promise<CreateMessageResult> {
+    return await this.#server.createMessage(params);
   }
 
   public async connect(transport: Transport) {

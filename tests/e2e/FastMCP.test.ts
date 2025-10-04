@@ -404,7 +404,7 @@ test("handles UserError errors", async () => {
           name: "add",
         }),
       ).toEqual({
-        content: [{ text: "Tool 'add' execution failed: Something went wrong", type: "text" }],
+        content: [{ text: "Something went wrong", type: "text" }],
         isError: true,
       });
     },
