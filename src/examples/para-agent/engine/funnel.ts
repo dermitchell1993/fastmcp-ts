@@ -327,5 +327,82 @@ export class FunnelAutomationEngine {
       priority: rule.priority || 1
     });
   }
-}
 
+  /**
+   * Analyze potential transitions without executing them
+   */
+  async analyzeTransitions(): Promise<TransitionResult[]> {
+    // For analysis, we need to get data from both Notion and Linear
+    const notionData = await this.notionTools.queryDatabase('all');
+    const linearData = await this.linearTools.getIssues();
+    
+    // Build a mock database structure for analysis
+    const database: PARADatabase = {
+      jots: notionData.filter((item: any) => item.stage === 'jots'),
+      tasks: [...notionData.filter((item: any) => item.stage === 'tasks'), ...linearData],
+      projects: notionData.filter((item: any) => item.stage === 'projects'),
+      areas: notionData.filter((item: any) => item.stage === 'areas'),
+      resources: notionData.filter((item: any) => item.stage === 'resources'),
+      archives: notionData.filter((item: any) => item.stage === 'archives')
+    };
+    
+    // Use processFunnel but don't execute transitions
+    const results: TransitionResult[] = [];
+    for (const stage of ['jots', 'tasks', 'projects', 'areas', 'resources'] as PARAStage[]) {
+      const items = this.getItemsForStage(database, stage);
+      for (const item of items) {
+        const context = this.buildContext(item, stage, database);
+        const applicableRules = this.rules
+          .filter(rule => rule.fromStage === stage && rule.condition(item, context))
+          .sort((a, b) => b.priority - a.priority);
+        
+        if (applicableRules.length > 0) {
+          const rule = applicableRules[0];
+          results.push({
+            item,
+            fromStage: rule.fromStage,
+            toStage: rule.toStage,
+            rule: rule.description,
+            success: true
+          });
+        }
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Execute funnel automation
+   */
+  async runAutomation(): Promise<{ success: boolean; transitions?: TransitionResult[]; error?: string }> {
+    try {
+      // Get data from both sources
+      const notionData = await this.notionTools.queryDatabase('all');
+      const linearData = await this.linearTools.getIssues();
+      
+      // Build database structure
+      const database: PARADatabase = {
+        jots: notionData.filter((item: any) => item.stage === 'jots'),
+        tasks: [...notionData.filter((item: any) => item.stage === 'tasks'), ...linearData],
+        projects: notionData.filter((item: any) => item.stage === 'projects'),
+        areas: notionData.filter((item: any) => item.stage === 'areas'),
+        resources: notionData.filter((item: any) => item.stage === 'resources'),
+        archives: notionData.filter((item: any) => item.stage === 'archives')
+      };
+      
+      // Execute transitions
+      const transitions = await this.processFunnel(database);
+      
+      return {
+        success: true,
+        transitions
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}

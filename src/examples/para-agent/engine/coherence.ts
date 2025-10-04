@@ -374,5 +374,45 @@ export class CoherenceEngine {
   getChecks(): CoherenceCheck[] {
     return [...this.checks];
   }
-}
 
+  /**
+   * Run maintenance with optional auto-fix
+   */
+  async runMaintenance(autoFix: boolean = false): Promise<{ success: boolean; report?: CoherenceReport; fixed?: number; error?: string }> {
+    try {
+      // Get data from both sources
+      const notionData = await this.notionTools.queryDatabase('all');
+      const linearData = await this.linearTools.getIssues();
+      
+      // Build database structure
+      const database: PARADatabase = {
+        jots: notionData.filter((item: any) => item.stage === 'jots'),
+        tasks: [...notionData.filter((item: any) => item.stage === 'tasks'), ...linearData],
+        projects: notionData.filter((item: any) => item.stage === 'projects'),
+        areas: notionData.filter((item: any) => item.stage === 'areas'),
+        resources: notionData.filter((item: any) => item.stage === 'resources'),
+        archives: notionData.filter((item: any) => item.stage === 'archives')
+      };
+      
+      // Run checks
+      const report = await this.runChecks(database);
+      
+      // Optionally fix issues
+      let fixed = 0;
+      if (autoFix && report.issues.length > 0) {
+        fixed = await this.fixIssues(report.issues, database);
+      }
+      
+      return {
+        success: true,
+        report,
+        fixed
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}

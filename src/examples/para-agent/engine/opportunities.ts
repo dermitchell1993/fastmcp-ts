@@ -439,5 +439,21 @@ export class OpportunitiesEngine {
 
     return Math.max(1, Math.min(10, complexity));
   }
-}
 
+  /**
+   * Analyze opportunities with simplified input
+   */
+  async analyze(projects: PARAProject[], tasks: PARATask[], taskScores?: Map<string, TaskScoreResult>): Promise<OpportunityAnalysis> {
+    // Build minimal database from provided data
+    const database: PARADatabase = {
+      jots: [],
+      tasks,
+      projects,
+      areas: [],
+      resources: [],
+      archives: []
+    };
+    
+    return this.analyzeOpportunities(database, taskScores);
+  }
+}

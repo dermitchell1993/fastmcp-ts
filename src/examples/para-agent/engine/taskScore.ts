@@ -158,7 +158,9 @@ export class TaskScoreEngine {
     recentActivity?: { date: Date; action: string }[];
   }): TaskScoreFactors {
     const now = new Date();
-    const ageInDays = Math.floor((now.getTime() - task.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const ageInDays = task.createdAt 
+      ? Math.floor((now.getTime() - task.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
 
     // Note activity (based on access patterns - simplified for now)
     const noteActivity = Math.min(10, (task.metadata?.accessCount || 0) * 0.5);
