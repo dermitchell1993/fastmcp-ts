@@ -11,6 +11,9 @@ export interface OpportunityAnalysis {
   analysisTimestamp: Date;
   totalPotentialValue: number;
   opportunitiesByType: Record<string, number>;
+  buildingBlocks: StrategicOpportunity[];
+  nearCompletion: StrategicOpportunity[];
+  score: number;
 }
 
 export class OpportunitiesEngine {
@@ -21,10 +24,12 @@ export class OpportunitiesEngine {
     const opportunities: StrategicOpportunity[] = [];
 
     // Find building block opportunities
-    opportunities.push(...this.findBuildingBlocks(database));
+    const buildingBlocks = this.findBuildingBlocks(database);
+    opportunities.push(...buildingBlocks);
 
     // Find near-completion projects
-    opportunities.push(...this.findNearCompletionProjects(database));
+    const nearCompletion = this.findNearCompletionProjects(database);
+    opportunities.push(...nearCompletion);
 
     // Find cross-area impact opportunities
     opportunities.push(...this.findCrossAreaImpacts(database));
@@ -44,11 +49,17 @@ export class OpportunitiesEngine {
       opportunitiesByType[opp.type] = (opportunitiesByType[opp.type] || 0) + 1;
     });
 
+    // Calculate overall score (0-100 based on value and quantity)
+    const score = Math.min(100, totalPotentialValue + opportunities.length * 2);
+
     return {
       opportunities,
       analysisTimestamp: new Date(),
       totalPotentialValue,
-      opportunitiesByType
+      opportunitiesByType,
+      buildingBlocks,
+      nearCompletion,
+      score
     };
   }
 
