@@ -9,7 +9,7 @@
  * - Large dataset processing
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { TaskScoreEngine } from '../../src/examples/para-agent/engine/taskScore.js';
 import { FunnelAutomationEngine } from '../../src/examples/para-agent/engine/funnel.js';
 import { CoherenceEngine } from '../../src/examples/para-agent/engine/coherence.js';
@@ -344,4 +344,3 @@ describe('PARA Agent Performance Tests', () => {
     });
   });
 });
-

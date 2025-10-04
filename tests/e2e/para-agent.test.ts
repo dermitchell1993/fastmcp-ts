@@ -80,23 +80,23 @@ describe('PARA Automation Agent - End-to-End Tests', () => {
     // Initialize configuration
     configManager = new ConfigManager();
 
-    // Mock the tools
-    notionTools = vi.fn().mockImplementation(() => ({
+    // Mock the tools - create actual mock instances, not mock constructors
+    notionTools = {
       queryDatabase: vi.fn().mockResolvedValue([]),
       updatePage: vi.fn().mockResolvedValue({}),
       moveToDatabase: vi.fn().mockResolvedValue({})
-    }));
+    } as any;
 
-    linearTools = vi.fn().mockImplementation(() => ({
+    linearTools = {
       getIssues: vi.fn().mockResolvedValue([]),
       updateIssue: vi.fn().mockResolvedValue({}),
       createSubtasks: vi.fn().mockResolvedValue([])
-    }));
+    } as any;
 
-    slackTools = vi.fn().mockImplementation(() => ({
+    slackTools = {
       sendMessage: vi.fn().mockResolvedValue({}),
       sendSummary: vi.fn().mockResolvedValue({})
-    }));
+    } as any;
 
     // Initialize engines
     taskScoreEngine = new TaskScoreEngine();

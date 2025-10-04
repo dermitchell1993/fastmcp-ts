@@ -200,8 +200,8 @@ export class TaskScoreEngine {
     let urgency = 5; // baseline
 
     // Boost for urgent tags
-    if (task.tags.some(tag => tag.toLowerCase().includes('urgent'))) urgency += 3;
-    if (task.tags.some(tag => tag.toLowerCase().includes('critical'))) urgency += 2;
+    if (task.tags?.some(tag => tag.toLowerCase().includes('urgent'))) urgency += 3;
+    if (task.tags?.some(tag => tag.toLowerCase().includes('critical'))) urgency += 2;
 
     // Boost for high priority
     if (task.priority && task.priority >= 8) urgency += 2;
@@ -213,8 +213,8 @@ export class TaskScoreEngine {
     let importance = 5; // baseline
 
     // Boost for goal-related items
-    if (task.tags.some(tag => tag.toLowerCase().includes('goal'))) importance += 3;
-    if (task.tags.some(tag => tag.toLowerCase().includes('strategic'))) importance += 2;
+    if (task.tags?.some(tag => tag.toLowerCase().includes('goal'))) importance += 3;
+    if (task.tags?.some(tag => tag.toLowerCase().includes('strategic'))) importance += 2;
 
     // Boost for high priority
     if (task.priority && task.priority >= 7) importance += 2;
