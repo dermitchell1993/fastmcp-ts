@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsup",
     "lint": "prettier --check . && eslint . && tsc --noEmit && jsr publish --dry-run",
-    "test": "vitest run",
+    "test": "mocha",
     "format": "prettier --write . && eslint --fix ."
   },
   "bin": {
@@ -78,7 +78,13 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
     "valibot": "^1.1.0",
-    "vitest": "^3.2.4"
+    "@types/chai": "^5.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/sinon": "^17.0.3",
+    "chai": "^5.1.2",
+    "mocha": "^11.0.1",
+    "sinon": "^19.0.2",
+    "ts-node": "^10.9.2"
   },
   "tsup": {
     "entry": [

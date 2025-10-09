@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { FastMCP, type ServerOptions } from "../src/FastMCP.js";
 
+// Test fixtures and helpers - no test framework dependencies needed
+
 // Shared test fixtures and data generators for FastMCP test suite
 
 export const createTestServer = (
