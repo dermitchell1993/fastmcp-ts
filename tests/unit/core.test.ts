@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { FastMCP } from "../../src/FastMCP.js";
-import { createTestServer } from "../fixtures.test.js";
+import { createTestServer } from "../fixtures.js";
 
 describe("FastMCP Core", () => {
   describe("Server Initialization", () => {

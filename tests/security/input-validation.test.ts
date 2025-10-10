@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createTestServer, createTestTool } from "../fixtures.test.js";
+import { createTestServer, createTestTool } from "../fixtures.js";
 
 describe("Input Validation", () => {
   describe("Tool Parameter Validation", () => {

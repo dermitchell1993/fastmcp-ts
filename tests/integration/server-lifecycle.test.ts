@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getRandomPort } from "get-port-please";
-import { createTestServer } from "../fixtures.test.js";
+import { createTestServer } from "../fixtures.js";
 
 describe("Server Lifecycle", () => {
   describe("HTTP Stream Transport", () => {

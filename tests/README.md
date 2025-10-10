@@ -10,7 +10,7 @@ A comprehensive, multi-layered test suite for the FastMCP TypeScript framework, 
 tests/
 ├── README.md                    # This documentation
 ├── setup.ts                     # Vitest global setup and mocks
-├── fixtures.test.ts             # Shared test fixtures and data generators
+├── fixtures.ts                  # Shared test fixtures and data generators
 ├── vitest.config.js             # Vitest configuration with ES module support
 ├── unit/                        # Unit tests (fast, isolated)
 │   ├── core.test.ts             # Core FastMCP business logic
@@ -110,7 +110,7 @@ pnpm test src/FastMCP.test.ts
 
 ## Test Data and Fixtures
 
-Shared test fixtures are available in `fixtures.test.ts`:
+Shared test fixtures are available in `fixtures.ts`:
 
 - Server creation helpers
 - Tool/resource/prompt templates
@@ -126,6 +126,6 @@ When adding new tests:
 3. E2E tests in `e2e/`
 4. Performance tests in `performance/`
 5. Security tests in `security/`
-6. Use shared fixtures from `fixtures.test.ts`
+6. Use shared fixtures from `fixtures.ts`
 7. Follow existing naming conventions
 8. Ensure tests are isolated and deterministic

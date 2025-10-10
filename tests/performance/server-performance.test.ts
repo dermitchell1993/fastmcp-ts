@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getRandomPort } from "get-port-please";
-import { createTestServer, createTestTool } from "../fixtures.test.js";
+import { createTestServer, createTestTool } from "../fixtures.js";
 
 describe("Server Performance", () => {
   describe("Server Initialization", () => {
